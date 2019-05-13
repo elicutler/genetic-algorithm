@@ -82,12 +82,12 @@ class PipelineMaker:
     
     def make_pipeline(self, num_features, cat_features, preprocessor_choices, estimator_choices):
         
-        preprocessor = self._make_preprocessor(num_features, cat_features, preprocessor_choices)
+        preprocessor = self._make_preprocessor(num_features, cat_features, **preprocessor_choices)
         
         if self.estimator_type == 'gbm_regressor':
-            estimator = GradientBoostingRegressor(estimator_choices)
+            estimator = GradientBoostingRegressor(**estimator_choices)
         elif self.estimator_type == 'gbm_classifier':
-            estimator = GradientBoostingClassifier(estimator_choices)
+            estimator = GradientBoostingClassifier(**estimator_choices)
             
         pipeline = Pipeline([
             ('preprocessor', preprocessor),
