@@ -78,9 +78,19 @@ class IndivMaker:
         self, estimator_type, data_frame, target, num_features, cat_features,  
         cv_strat, n_splits, eval_criterion, random_state=None
     ):
+        self.estimator_type = estimator_type
+        self.data_frame = data_frame
+        self.target = target
+        self.num_features = num_features
+        self.cat_features = cat_features
+        self.cv_strat = cv_strat
+        self.n_splits = n_splits
+        self.eval_criterion = eval_criterion
+        self.random_state = random_state
+        
         self.pipelineMaker = PipelineMaker(
-            estimator_type=estimator_type, num_features=num_features, 
-            cat_features=cat_features, random_state=random_state
+            estimator_type=self.estimator_type, num_features=self.num_features, 
+            cat_features=self.cat_features, random_state=self.random_state
         )
         self.preprocessor_choice_grid = {
             'num_impute_strat': ['mean', 'median'],
@@ -88,39 +98,30 @@ class IndivMaker:
             'missing_values': [np.nan, None],
             'prior_frac': np.linspace(0.01, 1, num=100)
         }
-        if estimator_type == 'gbm_regressor':
+        if self.estimator_type == 'gbm_regressor':
             self.estimator_choice_grid = {
                 'loss': ['ls', 'lad'],
                 'n_estimators': np.arange(100, 1000, 100),
                 'subsample': np.linspace(0.1, 1, num=10),
                 'min_samples_leaf': np.arange(1, 10),
-                'max_depth': np.arange(12),
+                'max_depth': np.arange(1, 12),
                 'min_impurity_decrease': np.linspace(0, 1, num=10)
             }
-        elif estimator_type == 'gbm_classifier':
+        elif self.estimator_type == 'gbm_classifier':
             self.estimator_choice_grid = {
                 'learning_rate': np.linspace(0.01, 1, num=100),
                 'n_estimators': np.arange(100, 1000, 100),
                 'subsample': np.linspace(0.1, 1, num=10),
                 'min_samples_leaf': np.arange(2, 10),
-                'max_depth': np.arange(12),
+                'max_depth': np.arange(1, 12),
                 'min_impurity_decrease': np.linspace(0, 1, num=10)        
             }
-            
-        self.num_features = num_features
-        self.cat_features = cat_features
-        self.data_frame = data_frame
-        self.target = target
-            
-        if cv_strat == 'KFold':
-            self.cv_strat = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
-        elif cv_strat == 'StratifiedKFold':
-            self.cv_strat = StratifiedKfold(n_splits=n_splits, shuffle=True, random_state=random_state)
-        elif cv_strat == 'TimeSeriesSplit':
-            self.cv_strat = TimeSeriesSplit(n_splits=n_splits)
-        
-        self.eval_criterion = eval_criterion
-        
+        if self.cv_strat == 'KFold':
+            self.cv = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
+        elif self.cv == 'StratifiedKFold':
+            self.cv = StratifiedKfold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
+        elif self.cv == 'TimeSeriesSplit':
+            self.cv = TimeSeriesSplit(n_splits=self.n_splits)        
             
     def _make_indiv(self, preprocessor_choice_grid, estimator_choice_grid):
         preprocessor_choices = {
@@ -185,23 +186,59 @@ class IndivMaker:
         X = self.data_frame[[*self.num_features, *self.cat_features]]
         y = np.ravel(self.data_frame[self.target]) # RandomForest raises warning if not passed 1D array
         cv_scores = cross_val_score(
-            estimator=pipe, X=X, y=y, scoring=self.eval_criterion, cv=self.cv_strat
+            estimator=pipe, X=X, y=y, scoring=self.eval_criterion, cv=self.cv, error_score=np.nan
         )
-        mean_cv_score = cv_scores.mean()
-        return mean_cv_score
+        indiv['fitness'] = cv_scores.mean()
+        return None
         
 
 # Genetic algorithm ==========
 
 class GeneticAlgorithm:
     
-    def __init__(self):
-        pass
-    
-    def _replenish_population(self):
-        pass
+    def __init__(
+        self, pop_size, top_frac, btm_frac, child_frac, mutate_frac, keep_graveyard, 
+        estimator_type, data_frame, target, num_features, cat_features, 
+        cv_strat, n_splits, eval_criterion, random_state=None
+    ):
+        self.pop_size = pop_size
+        self.top_n    = int(np.floor(top_frac*self.pop_size))
+        self.btm_n    = int(np.floor(btm_frac*self.pop_size))
+        self.child_n  = int(np.floor(child_frac*self.pop_size))
+        self.mutate_n = int(np.floor(mutate_frac*self.child_n))
+        
+        if keep_graveyard:
+            self.graveyard = []
+            
+        self.estimator_type = estimator_type
+        self.data_frame = data_frame
+        self.target = target
+        self.num_features = num_features
+        self.cat_features = cat_features
+        self.cv_strat = cv_strat
+        self.n_splits = n_splits
+        self.eval_criterion = eval_criterion
+        self.random_state = random_state
+        
+        self.indivMaker = IndivMaker(
+            estimator_type=self.estimator_type, data_frame=self.data_frame, target=self.target,
+            num_features=self.num_features, cat_features=self.cat_features, cv_strat=self.cv_strat, 
+            eval_criterion=self.eval_criterion, n_splits=self.n_splits, random_state=self.random_state
+        )
+        self.population = []
+        
+        for i in range(self.pop_size):
+            self.population.append(self.indivMaker.make_random_indiv())
+        
+        self.n_iters_total = 0
+        self.n_iters_no_improv = 0
     
     def _assess_population_fitness(self):
+        for indiv in self.population:
+            if indiv['fitness'] is not None:
+                self.indivMaker.assess_indiv_fitness(indiv)
+
+    def _replenish_population(self):
         pass
     
     def _kill_unfit(self):
@@ -216,7 +253,11 @@ class GeneticAlgorithm:
 
 # TESTING ==================================
 
+## Imports ----------
+
 import pandas as pd
+
+## Data ----------
 
 df = pd.DataFrame({
     'x1': list(np.arange(1, 1001)),
@@ -224,8 +265,10 @@ df = pd.DataFrame({
 })
 df['y'] = 3 + 1*df['x1'] + 4*(df['x2'] == 'b') - 0.3*df['x1']*(df['x2'] == 'b') + np.random.normal()
 
+## Pipeline test ----------
+
 pipelineMaker = PipelineMaker(
-    estimator_type='gbm_regressor', num_features=['x1'], cat_features=['x2']    
+    estimator_type='gbm_regressor', num_features=['x1'], cat_features=['x2'], random_state=617    
 )            
 pipe = pipelineMaker.make_pipeline(
     preprocessor_choices={
@@ -235,15 +278,31 @@ pipe = pipelineMaker.make_pipeline(
         'loss': 'ls', 'n_estimators': 100, 'subsample': 0.5, 
         'min_samples_leaf': 1, 'max_depth': 4, 'min_impurity_decrease': 0
     }
-)   
+)
+
+## Indiv maker test ----------
 
 indivMaker = IndivMaker(
     estimator_type='gbm_regressor',  data_frame=df, target='y', 
-    num_features=['x1'], cat_features=['x2'],
-    cv_strat='KFold', n_splits=2, eval_criterion='neg_mean_squared_error'
+    num_features=['x1'], cat_features=['x2'], cv_strat='KFold',
+    n_splits=2, eval_criterion='neg_mean_squared_error', random_state=617
 )
 i1 = indivMaker.make_random_indiv()
 i2 = indivMaker.make_random_indiv()
 i3 = indivMaker.make_child_indiv(i1, i2)
 indivMaker.mutate_indiv(i3)
-score = indivMaker.assess_indiv_fitness(i1)
+indivMaker.assess_indiv_fitness(i1)
+
+## Genetic algorithm test ----------
+
+# class GeneticAlgorithm:
+
+genAlg = GeneticAlgorithm(
+    pop_size=20, top_frac=0.30, btm_frac=0.05, child_frac=0.25, mutate_frac=0.20,
+    keep_graveyard=True, estimator_type='gbm_regressor', data_frame=df, target='y',
+    num_features=['x1'], cat_features=['x2'], cv_strat='KFold', n_splits=2,
+    eval_criterion='neg_mean_squared_error', random_state=617
+)
+genAlg._assess_population_fitness()
+
+print('Done')
