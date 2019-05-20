@@ -201,6 +201,8 @@ class GeneticAlgorithm:
         estimator_type, data_frame, target, num_features, cat_features, 
         cv_strat, n_splits, eval_criterion, random_state=None
     ):
+        assert top_frac + btm_frac + child_frac <= 1
+        
         self.pop_size = pop_size
         self.top_n    = int(np.floor(top_frac*self.pop_size))
         self.btm_n    = int(np.floor(btm_frac*self.pop_size))
@@ -233,7 +235,7 @@ class GeneticAlgorithm:
         ]        
         self.best_indiv = None
         self.n_iters_total = 0
-        self.n_iters_no_improv = 0
+#         self.n_iters_no_improv = 0
     
     def _assess_population_fitness(self):
         for indiv in range(len(self.population)):
@@ -243,13 +245,13 @@ class GeneticAlgorithm:
         self.population.sort(key=lambda indiv: indiv['fitness'], reverse=True)
         best_indiv_current_gen = self.population[0]
         
-        if self.best_indiv is None:
-            self.best_indiv = best_indiv_current_gen
-        elif best_indiv_current_gen['fitness'] > self.best_indiv['fitness']:
-            self.best_indiv = best_indiv_current_gen
-            self.n_iters_no_improv = 0
-        else:
-            self.n_iters_no_improv += 1
+#         if self.best_indiv is None:
+#             self.best_indiv = best_indiv_current_gen
+#         elif best_indiv_current_gen['fitness'] > self.best_indiv['fitness']:
+#             self.best_indiv = best_indiv_current_gen
+#             self.n_iters_no_improv = 0
+#         else:
+#             self.n_iters_no_improv += 1
             
         self.n_iters_total += 1
         return None
@@ -264,7 +266,7 @@ class GeneticAlgorithm:
         
         if self.keep_graveyard:
             for index in kill_indexes:
-                self.graveyard.append(self.population[index])
+                self.graveyard += [self.population[index]]
                 
         population = [self.population[index] for index in keep_indexes]
         self.population = population
@@ -272,11 +274,33 @@ class GeneticAlgorithm:
     
                 
     def _replenish_population(self):
+        assert len(self.population) >= 2
+        
+        children = []
+        for i in range(self.child_n):
+            mother = np.random.choice(self.population)
+            father = np.random.choice(self.population)
+            while father == mother:
+                father = np.random.choice(self.population)
+            child_indiv = self.indivMaker.make_child_indiv(mother, father)
+            children += [child_indiv]
+            
+        for i in range(self.mutate_n):
+            indiv_to_mutate = np.random.choice(children)
+            self.indivMaker.mutate_indiv(indiv_to_mutate)
+            
+        self.population += children
+        
         while len(self.population) < self.pop_size:
-            self.population.append(self.indivMaker.make_random_indiv())
+            self.population += [self.indivMaker.make_random_indiv()]
+    
+        return None
     
     def _evolve_generation(self):
-        pass
+        self._assess_population_fitness()
+        self._kill_unfit()
+        self._replenish_population()
+        return None
     
     def evolve(self, n_iters=10, n_iters_no_improvement=None, print_current_best=False):
         pass
@@ -291,8 +315,8 @@ import pandas as pd
 ## Data ----------
 
 df = pd.DataFrame({
-    'x1': list(np.arange(1, 1001)),
-    'x2': [*['a']*500, *['b']*500]
+    'x1': list(np.arange(1, 101)),
+    'x2': [*['a']*50, *['b']*50]
 })
 df['y'] = 3 + 1*df['x1'] + 4*(df['x2'] == 'b') - 0.3*df['x1']*(df['x2'] == 'b') + np.random.normal()
 
@@ -336,5 +360,7 @@ genAlg = GeneticAlgorithm(
 )
 genAlg._assess_population_fitness()
 genAlg._kill_unfit()
+genAlg._replenish_population()
+genAlg._evolve_generation()
 
 print('Done')
