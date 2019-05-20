@@ -188,7 +188,7 @@ class IndivMaker:
         cv_scores = cross_val_score(
             estimator=pipe, X=X, y=y, scoring=self.eval_criterion, cv=self.cv, error_score=np.nan
         )
-        indiv['fitness'] = cv_scores.mean()
+        indiv['fitness'] = cv_scores.mean() if not np.isnan(cv_scores.mean()) else np.NINF
         return None
         
 
@@ -207,7 +207,8 @@ class GeneticAlgorithm:
         self.child_n  = int(np.floor(child_frac*self.pop_size))
         self.mutate_n = int(np.floor(mutate_frac*self.child_n))
         
-        if keep_graveyard:
+        self.keep_graveyard = keep_graveyard        
+        if self.keep_graveyard:
             self.graveyard = []
             
         self.estimator_type = estimator_type
@@ -225,29 +226,59 @@ class GeneticAlgorithm:
             num_features=self.num_features, cat_features=self.cat_features, cv_strat=self.cv_strat, 
             eval_criterion=self.eval_criterion, n_splits=self.n_splits, random_state=self.random_state
         )
-        self.population = []
         
-        for i in range(self.pop_size):
-            self.population.append(self.indivMaker.make_random_indiv())
-        
+        self.population = [
+            self.indivMaker.make_random_indiv()
+            for i in range(self.pop_size)
+        ]        
+        self.best_indiv = None
         self.n_iters_total = 0
         self.n_iters_no_improv = 0
     
     def _assess_population_fitness(self):
-        for indiv in self.population:
-            if indiv['fitness'] is not None:
-                self.indivMaker.assess_indiv_fitness(indiv)
+        for indiv in range(len(self.population)):
+            if 'fitness' not in self.population[indiv].keys():
+                self.indivMaker.assess_indiv_fitness(self.population[indiv])
+                
+        self.population.sort(key=lambda indiv: indiv['fitness'], reverse=True)
+        best_indiv_current_gen = self.population[0]
+        
+        if self.best_indiv is None:
+            self.best_indiv = best_indiv_current_gen
+        elif best_indiv_current_gen['fitness'] > self.best_indiv['fitness']:
+            self.best_indiv = best_indiv_current_gen
+            self.n_iters_no_improv = 0
+        else:
+            self.n_iters_no_improv += 1
+            
+        self.n_iters_total += 1
+        return None
 
-    def _replenish_population(self):
-        pass
+    def _kill_unfit(self):        
+        pop_indexes = list(range(self.pop_size))
+        top_n_indexes = pop_indexes[:self.top_n]
+        remaining_indexes = [index for index in pop_indexes if index not in top_n_indexes]
+        btm_n_indexes = np.random.choice(remaining_indexes, size=self.btm_n)
+        kill_indexes = [index for index in remaining_indexes if index not in btm_n_indexes]
+        keep_indexes = [*top_n_indexes, *btm_n_indexes]
+        
+        if self.keep_graveyard:
+            for index in kill_indexes:
+                self.graveyard.append(self.population[index])
+                
+        population = [self.population[index] for index in keep_indexes]
+        self.population = population
+        return None
     
-    def _kill_unfit(self):
-        pass
+                
+    def _replenish_population(self):
+        while len(self.population) < self.pop_size:
+            self.population.append(self.indivMaker.make_random_indiv())
     
     def _evolve_generation(self):
         pass
     
-    def evolve(self, n_iters=10, n_iters_no_improvement=None):
+    def evolve(self, n_iters=10, n_iters_no_improvement=None, print_current_best=False):
         pass
     
 
@@ -304,5 +335,6 @@ genAlg = GeneticAlgorithm(
     eval_criterion='neg_mean_squared_error', random_state=617
 )
 genAlg._assess_population_fitness()
+genAlg._kill_unfit()
 
 print('Done')
