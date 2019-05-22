@@ -235,25 +235,11 @@ class GeneticAlgorithm:
         ]        
         self.best_indiv = None
         self.n_iters_total = 0
-#         self.n_iters_no_improv = 0
     
     def _assess_population_fitness(self):
         for indiv in range(len(self.population)):
             if 'fitness' not in self.population[indiv].keys():
                 self.indivMaker.assess_indiv_fitness(self.population[indiv])
-                
-        self.population.sort(key=lambda indiv: indiv['fitness'], reverse=True)
-        best_indiv_current_gen = self.population[0]
-        
-#         if self.best_indiv is None:
-#             self.best_indiv = best_indiv_current_gen
-#         elif best_indiv_current_gen['fitness'] > self.best_indiv['fitness']:
-#             self.best_indiv = best_indiv_current_gen
-#             self.n_iters_no_improv = 0
-#         else:
-#             self.n_iters_no_improv += 1
-            
-        self.n_iters_total += 1
         return None
 
     def _kill_unfit(self):        
@@ -271,7 +257,6 @@ class GeneticAlgorithm:
         population = [self.population[index] for index in keep_indexes]
         self.population = population
         return None
-    
                 
     def _replenish_population(self):
         assert len(self.population) >= 2
@@ -296,15 +281,45 @@ class GeneticAlgorithm:
     
         return None
     
-    def _evolve_generation(self):
-        self._assess_population_fitness()
-        self._kill_unfit()
-        self._replenish_population()
+    def evolve(self, n_iters_max=10, n_iters_no_improv_max=None, print_current_best=False):
+        
+        assert n_iters_max or n_iters_no_improv_max
+        
+        n_iters = 0
+        n_iters_no_improv = 0
+        
+        while True:
+            self._assess_population_fitness()
+            self.population.sort(key=lambda indiv: indiv['fitness'], reverse=True)
+            best_indiv_current_gen = self.population[0]
+            
+            n_iters += 1
+            self.n_iters_total += 1
+            
+            if self.best_indiv is None or (
+                best_indiv_current_gen['fitness'] > self.best_indiv['fitness']
+            ):
+                self.best_indiv = best_indiv_current_gen
+                n_iters_no_improv = 0
+            else:
+                n_iters_no_improv += 1  
+                
+            if print_current_best:
+                print('Current best fitness: {}'.format(self.best_indiv['fitness']))
+            
+            if (n_iters_max and n_iters >= n_iters_max) or (
+                n_iters_no_improv_max and n_iters_no_improv >= n_iters_no_improv_max
+            ):
+                print(
+                    f'Finished evolving {n_iters} generations '
+                    + f'({n_iters_no_improv} consecutive generations without improvement)'
+                )
+                break
+                
+            self._kill_unfit()
+            self._replenish_population()           
+        
         return None
-    
-    def evolve(self, n_iters=10, n_iters_no_improvement=None, print_current_best=False):
-        pass
-    
 
 # TESTING ==================================
 
@@ -361,6 +376,11 @@ genAlg = GeneticAlgorithm(
 genAlg._assess_population_fitness()
 genAlg._kill_unfit()
 genAlg._replenish_population()
-genAlg._evolve_generation()
+
+genAlg.evolve(n_iters_max=3, print_current_best=True)
+genAlg.evolve(n_iters_max=10, n_iters_no_improv_max=5, print_current_best=True)
+
+len(genAlg.graveyard)
+genAlg.best_indiv
 
 print('Done')
