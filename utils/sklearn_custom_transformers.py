@@ -87,4 +87,4 @@ class TargetMeanEncoder(BaseEstimator, TransformerMixin):
                 
             X_transformed[:, col] = means_getter(X[:, col])
                 
-return X_transformed
+        return X_transformed
