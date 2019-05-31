@@ -12,6 +12,6 @@ setup(
     author='Eli Cutler',
     author_email='cutler.eli@gmail.com',
     license='MIT',
-    packages=['genetic_algorithm'],
+    packages=find_packages(),
     zip_safe=False
 )
