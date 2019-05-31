@@ -17,7 +17,13 @@ df = pd.DataFrame({
     'x1': list(np.arange(1, 101)),
     'x2': [*['a']*50, *['b']*50]
 })
-df['y'] = 3 + 1*df['x1'] + 4*(df['x2'] == 'b') - 0.3*df['x1']*(df['x2'] == 'b') + np.random.normal()
+df['y'] = (
+    3 
+    + 1*df['x1'] 
+    + 4*(df['x2'] == 'b') 
+    - 0.3*df['x1']*(df['x2'] == 'b') 
+    + np.random.normal()
+)
 
 ## Pipeline test ----------
 
