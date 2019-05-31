@@ -42,9 +42,11 @@ class TargetMeanEncoder(BaseEstimator, TransformerMixin):
                 X_col_lvl = data_arr[:, col] == lvl
                 y_col     = data_arr.shape[1] - 1   
                 
+                X_col_lvl_y_numeric = data_arr[X_col_lvl, y_col].astype(float)
+                
                 lvl_means[col][lvl]  = (
-                    np.mean(data_arr[X_col_lvl, y_col]) 
-                    if not np.isnan(data_arr[X_col_lvl, y_col]).all()
+                    np.mean(X_col_lvl_y_numeric) 
+                    if not np.isnan(X_col_lvl_y_numeric).all()
                     else grand_mean
                 )
                 lvl_counts[col][lvl] = data_arr[X_col_lvl].shape[0]
