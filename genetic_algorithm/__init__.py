@@ -1,1 +1,1 @@
-import genetic_algorithm
+from genetic_algorithm import *
