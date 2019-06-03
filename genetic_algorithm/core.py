@@ -17,7 +17,7 @@ from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
 from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 from xgboost import XGBRegressor, XGBClassifier
 
-from utils.sklearn_custom_transformers import TargetMeanEncoder
+from genetic_algorithm.utils.sklearn_custom_transformers import TargetMeanEncoder
 
 # Pipeline building blocks ==========
 
