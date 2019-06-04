@@ -5,6 +5,7 @@ genetic_algorithm.egg-info/PKG-INFO
 genetic_algorithm.egg-info/SOURCES.txt
 genetic_algorithm.egg-info/dependency_links.txt
 genetic_algorithm.egg-info/not-zip-safe
+genetic_algorithm.egg-info/requires.txt
 genetic_algorithm.egg-info/top_level.txt
 genetic_algorithm/utils/__init__.py
 genetic_algorithm/utils/sklearn_custom_transformers.py

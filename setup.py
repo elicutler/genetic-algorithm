@@ -13,5 +13,6 @@ setup(
     author_email='cutler.eli@gmail.com',
     license='MIT',
     packages=find_packages(),
+    install_requires=['numpy', 'pandas', 'sklearn', 'xgboost'],
     zip_safe=False
 )
