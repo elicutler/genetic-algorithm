@@ -1,3 +1,3 @@
 # Imports ==========
 
-from genetic_algorithm.core import *
+from genetic_algorithm.core import GeneticAlgorithm

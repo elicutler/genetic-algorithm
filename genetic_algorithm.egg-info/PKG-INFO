@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: genetic-algorithm
+Version: 0.1
+Summary: Gentic algorithm for ML hyperparameter tuning of scikit-learn pipelines
+Home-page: https://github.com/elicutler/genetic-algorithm
+Author: Eli Cutler
+Author-email: cutler.eli@gmail.com
+License: MIT
+Description: UNKNOWN
+Platform: UNKNOWN
