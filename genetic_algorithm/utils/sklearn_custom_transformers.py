@@ -68,6 +68,8 @@ class TargetMeanEncoder(BaseEstimator, TransformerMixin):
                         
                     lvl_means_smoothed[col][lvl] = (
                         (1 - smooth_wt)*lvl_means[col][lvl] + smooth_wt*grand_mean
+                        if not np.isnan((1 - smooth_wt)*lvl_means[col][lvl] + smooth_wt*grand_mean)
+                        else grand_mean
                     )
                         
             self.lvl_means_smoothed = lvl_means_smoothed
