@@ -43,7 +43,7 @@ class PipelineMaker:
             ('num_normalizer', StandardScaler())
         ])         
         cat_pipe = Pipeline([
-            ('cat_imputer', SimpleImputer(strategy='most_frequent')),
+            ('cat_imputer', Imputer(strategy='most_frequent')),
             ('cat_encoder', cat_encoder)
         ])        
         num_cat_pipe = ColumnTransformer([
