@@ -39,7 +39,7 @@ class PipelineMaker:
             cat_encoder = TargetMeanEncoder(prior_frac=prior_frac)  
             
         num_pipe = Pipeline([
-            ('num_imputer', SimpleImputer(strategy=num_impute_strat)),
+            ('num_imputer', SimpleImputer(strategy=num_impute_strat, fill_value=-999)),
             ('num_normalizer', StandardScaler())
         ])         
         cat_pipe = Pipeline([
@@ -93,7 +93,7 @@ class IndivMaker:
             cat_features=self.cat_features, random_state=self.random_state
         )
         self.preprocessor_choice_grid = {
-            'num_impute_strat': ['mean', 'most_frequent'],
+            'num_impute_strat': ['mean', 'median'],
             'cat_encoder_strat': ['one_hot', 'target_mean'],
             'prior_frac': np.linspace(0.01, 1, num=100)
         }
