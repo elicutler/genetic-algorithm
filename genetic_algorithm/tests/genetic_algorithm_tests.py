@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath('..'))
 import numpy as np
 import pandas as pd
 
-from genetic_algorithm import PipelineMaker, IndivMaker, GeneticAlgorithm
+from genetic_algorithm.core import PipelineMaker, IndivMaker, GeneticAlgorithm
 
 ## Data ----------
 
