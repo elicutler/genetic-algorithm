@@ -49,6 +49,10 @@ class TargetMeanEncoder(BaseEstimator, TransformerMixin):
                     if not np.isnan(np.mean(X_col_lvl_y_numeric))
                     else grand_mean
                 )
+                
+                if np.isnan(lvl_means[col][lvl]):
+                    breakpoint()
+                
                 lvl_counts[col][lvl] = data_arr[X_col_lvl].shape[0]
                 
         self.lvl_means = lvl_means
@@ -71,6 +75,9 @@ class TargetMeanEncoder(BaseEstimator, TransformerMixin):
                         if not np.isnan((1 - smooth_wt)*lvl_means[col][lvl] + smooth_wt*grand_mean)
                         else grand_mean
                     )
+                    
+                    if np.isnan(lvl_means_smoothed[col][lvl]):
+                        breakpoint()
                         
             self.lvl_means_smoothed = lvl_means_smoothed
             self.grand_mean = grand_mean
