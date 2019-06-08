@@ -31,7 +31,7 @@ class PipelineMaker:
         self.random_state = random_state
         
     def _make_preprocessor(
-        self, num_impute_strat, cat_encoder_strat, missing_values, prior_frac
+        self, num_impute_strat, cat_encoder_strat, prior_frac
     ):           
         if cat_encoder_strat == 'one_hot':
             cat_encoder = OneHotEncoder(handle_unknown='ignore')
@@ -52,7 +52,7 @@ class PipelineMaker:
         ])        
         preprocessor = FeatureUnion([
             ('num_cat_pipe', num_cat_pipe),
-            ('missing_flagger', MissingIndicator(missing_values=missing_values, features='all'))
+            ('missing_flagger', MissingIndicator(features='all'))
         ])    
         return preprocessor
     
@@ -95,7 +95,6 @@ class IndivMaker:
         self.preprocessor_choice_grid = {
             'num_impute_strat': ['mean', 'median'],
             'cat_encoder_strat': ['one_hot', 'target_mean'],
-            'missing_values': [np.nan, None],
             'prior_frac': np.linspace(0.01, 1, num=100)
         }
         if self.estimator_type == 'gbm_regressor':

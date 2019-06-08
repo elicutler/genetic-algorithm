@@ -2,9 +2,8 @@
 
 ## Imports ----------
 
-import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, '..')
 
 import numpy as np
 import pandas as pd
@@ -24,6 +23,7 @@ df['y'] = (
     - 0.3*df['x1']*(df['x2'] == 'b') 
     + np.random.normal()
 )
+df.loc[5, 'x1'] = np.nan
 
 ## Pipeline test ----------
 
@@ -32,8 +32,7 @@ pipelineMaker = PipelineMaker(
 )            
 pipe = pipelineMaker.make_pipeline(
     preprocessor_choices={
-        'num_impute_strat': 'mean', 'cat_encoder_strat': 'one_hot', 
-        'missing_values': np.nan, 'prior_frac': 0.1
+        'num_impute_strat': 'mean', 'cat_encoder_strat': 'one_hot', 'prior_frac': 0.1
     }, estimator_choices={
         'loss': 'ls', 'n_estimators': 100, 'subsample': 0.5, 
         'min_samples_leaf': 1, 'max_depth': 4, 'min_impurity_decrease': 0
