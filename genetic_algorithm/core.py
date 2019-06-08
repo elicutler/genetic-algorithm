@@ -6,8 +6,8 @@ Genetic algorithm for ML hyperparameter tuning
 
 import numpy as np
 
-from sklearn.impute import SimpleImputer, MissingIndicator
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.impute import MissingIndicator
+from sklearn.preprocessing import Imputer, OneHotEncoder, StandardScaler
 from sklearn.linear_model import ElasticNet, SGDClassifier
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor  
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
@@ -39,7 +39,7 @@ class PipelineMaker:
             cat_encoder = TargetMeanEncoder(prior_frac=prior_frac)  
             
         num_pipe = Pipeline([
-            ('num_imputer', SimpleImputer(strategy=num_impute_strat, fill_value=-999)),
+            ('num_imputer', Imputer(strategy=num_impute_strat)),
             ('num_normalizer', StandardScaler())
         ])         
         cat_pipe = Pipeline([
