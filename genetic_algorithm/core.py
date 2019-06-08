@@ -93,7 +93,7 @@ class IndivMaker:
             cat_features=self.cat_features, random_state=self.random_state
         )
         self.preprocessor_choice_grid = {
-            'num_impute_strat': ['mean', 'median'],
+            'num_impute_strat': ['mean', 'most_frequent'],
             'cat_encoder_strat': ['one_hot', 'target_mean'],
             'prior_frac': np.linspace(0.01, 1, num=100)
         }
