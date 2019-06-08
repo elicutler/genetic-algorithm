@@ -31,7 +31,7 @@ class PipelineMaker:
         self.random_state = random_state
         
     def _make_preprocessor(
-        self, num_impute_strat, cat_encoder_strat, flag_missing, prior_frac
+        self, num_impute_strat, cat_encoder_strat, missing_values, prior_frac
     ):           
         if cat_encoder_strat == 'one_hot':
             cat_encoder = OneHotEncoder(handle_unknown='ignore')
@@ -39,11 +39,11 @@ class PipelineMaker:
             cat_encoder = TargetMeanEncoder(prior_frac=prior_frac)  
             
         num_pipe = Pipeline([
-            ('num_imputer', SimpleImputer(strategy=num_impute_strat, add_indicator=flag_missing)),
+            ('num_imputer', SimpleImputer(strategy=num_impute_strat)),
             ('num_normalizer', StandardScaler())
         ])         
         cat_pipe = Pipeline([
-            ('cat_imputer', SimpleImputer(strategy='most_frequent', add_indicator=flag_missing)),
+            ('cat_imputer', SimpleImputer(strategy='most_frequent')),
             ('cat_encoder', cat_encoder)
         ])        
         num_cat_pipe = ColumnTransformer([
@@ -52,7 +52,7 @@ class PipelineMaker:
         ])        
         preprocessor = FeatureUnion([
             ('num_cat_pipe', num_cat_pipe),
-            ('missing_flagger', MissingIndicator(features='all'))
+            ('missing_flagger', MissingIndicator(missing_values=missing_values))
         ])    
         return preprocessor
     
@@ -95,7 +95,7 @@ class IndivMaker:
         self.preprocessor_choice_grid = {
             'num_impute_strat': ['mean', 'median'],
             'cat_encoder_strat': ['one_hot', 'target_mean'],
-            'flag_missing': [True, False],
+            'missing_values': [np.nan, 'DO_NOT_FLAG_MISSING'],
             'prior_frac': np.linspace(0.01, 1, num=100)
         }
         if self.estimator_type == 'gbm_regressor':
