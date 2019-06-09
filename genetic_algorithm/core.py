@@ -65,13 +65,22 @@ class PipelineMaker:
         elif self.estimator_type == 'gbm_classifier':
             estimator = GradientBoostingClassifier(random_state=self.random_state, **estimator_choices)
             
+        elif self.estimator_type == 'rf_regressor':
+            estimator = RandomForestRegressor(random_state=self.random_state, **estimator_choices)
+        elif self.estimator_type == 'rf_classifier':
+            estimator = RandomForestClassifier(random_state=self.random_state, **estimator_choices)
+            
+        elif self.estimator_type == 'enet_regressor':
+            estimator = ElasticNet(random_state=self.random_state, **estimator_choices)
+        elif self.estimator_type == 'enet_classifier':
+            estimator = SGDClassifier(random_state=self.random_state, **estimator_choices)
+            
         pipeline = Pipeline([
             ('preprocessor', preprocessor),
             ('estimator', estimator)
         ])
         return pipeline
-                 
-
+                
 class IndivMaker:
     
     def __init__(
@@ -98,6 +107,7 @@ class IndivMaker:
             'missing_values': [np.nan, 'DO_NOT_FLAG_MISSING'],
             'prior_frac': np.linspace(0.01, 1, num=100)
         }
+        
         if self.estimator_type == 'gbm_regressor':
             self.estimator_choice_grid = {
                 'loss': ['ls', 'lad'],
@@ -116,6 +126,36 @@ class IndivMaker:
                 'max_depth': np.arange(1, 12),
                 'min_impurity_decrease': np.linspace(0, 1, num=10)        
             }
+            
+        elif self.estimator_type == 'rf_regressor':
+            self.estimator_choice_grid = {
+                'criterion': ['mse', 'mae'],
+                'max_features': ['sqrt', 'log2', None],
+                'n_estimators': np.arange(100, 1000, 100)
+            }
+        elif self.estimator_type == 'rf_classifier':
+            self.estimator_choice_grid = {
+                'criterion': ['gini', 'entropy'],
+                'max_features': ['sqrt', 'log2', None],
+                'n_estimators': np.arange(100, 1000, 100)
+            }
+        
+        elif self.estimator_type == 'enet_regressor':
+            self.estimator_choice_grid = {
+                'alpha': np.linspace(0.01, 1, num=100), # sklearn advises against including very small alpha values
+                'l1_ratio': np.concatenate([np.logspace(-3, -1, num=4), np.linspace(0, 1, num=100)])
+            }
+        elif self.estimator_type == 'enet_classifier':
+            self.estimator_choice_grid = {
+                'loss': ['hinge', 'log'],
+                'alpha': np.concatenate([np.logspace(-4, -2, num=3), np.linspace(0.1, 1, num=100)]),
+                'l1_ratio': np.concatenate([np.logspace(-4, -1, num=4), np.linspace(0, 1, num=100)]),
+                'learning_rate': ['constant', 'optimal', 'invscaling', 'adaptive'],
+                'eta0': np.concatenate([np.logspace(-4, -2, num=3), np.linspace(0.1, 1, num=100)]),
+                'power_t': np.concatenate([np.logspace(-4, -2, num=3), np.linspace(0.1, 1, num=100)]),
+                'penalty': ['elastic_net']
+            }
+            
         if self.cv_strat == 'KFold':
             self.cv = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
         elif self.cv == 'StratifiedKFold':
