@@ -81,7 +81,7 @@ class TargetMeanEncoder(BaseEstimator, TransformerMixin):
     def transform(self, X):
         
         X = X.values if isinstance(X, pd.DataFrame) else X
-        X_transformed = np.empty_like(X)
+        X_transformed = np.empty_like(X).astype(float)
         
         for col in range(X_transformed.shape[1]):
             
@@ -91,5 +91,8 @@ class TargetMeanEncoder(BaseEstimator, TransformerMixin):
                 means_getter = np.vectorize(self.lvl_means[col].get)
                 
             X_transformed[:, col] = means_getter(X[:, col])
+            
+            # imputes for levels in validation set not seen in training set
+            X_transformed[np.isnan(X_transformed[:, col]), col] = self.grand_mean
                 
         return X_transformed
