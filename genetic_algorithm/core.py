@@ -52,7 +52,7 @@ class PipelineMaker:
         ])        
         preprocessor = FeatureUnion([
             ('num_cat_pipe', num_cat_pipe),
-            ('missing_flagger', MissingIndicator(missing_values=missing_values))
+            ('missing_flagger', MissingIndicator(missing_values=missing_values, features='all'))
         ])    
         return preprocessor
     
