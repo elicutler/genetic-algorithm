@@ -26,13 +26,13 @@ class GeneticAlgorithm:
         self, 
         modelMaker: ModelMaker,
         modelScorer: ModelScorer,
-        popSize:int,
-        keepTopFrac:float,
-        keepBtmFrac:float,
-        makeChildFrac:float,
-        mutateFrac:float,
-        keepGraveyard:bool=False,
-        randomState:int=None
+        popSize: int,
+        keepTopFrac: float,
+        keepBtmFrac: float,
+        makeChildFrac: float,
+        mutateFrac: float,
+        keepGraveyard: bool = False,
+        randomState: int = None
     ) -> None:
         '''
         Genetic algorithm for scikit-learn model hyperparameter tuning 
@@ -49,6 +49,10 @@ class GeneticAlgorithm:
             :randomState: seed for random initializations
         public methods
             :evolve: evolve a population of models using genetic algorithm techniques
+        public attributes
+            :self.population: final population of models
+            :self.bestModel: best model after all iterations
+            :self.graveYard: discarded models from previous generations (if kept)
         '''
         assert keepTopFrac + keepBtmFrac + makeChildrenFrac <= 1        
         
@@ -73,13 +77,16 @@ class GeneticAlgorithm:
             
         self.population = []
         self.bestModel = None   
+        
+        if self.randomSate is not None:
+            np.random.seed(self.randomState)
         return None
             
     def evolve(
         self, 
-        maxIters:int=10, 
-        maxItersNoImprov:int=None, 
-        printCurrentBest:bool=False
+        maxIters: int = 10, 
+        maxItersNoImprov: int = None, 
+        printCurrentBest: bool = False
     ) -> None:
         '''
         Evolve the population until a stopping condition is met
@@ -137,7 +144,7 @@ class GeneticAlgorithm:
         return None
     
     def _initializePop(self) -> None:
-        assert len(self.population) == 0
+        assert len(self.population) == 0, 'Models already in population'
         self.population = [
             self.modelMaker.makeRandomModel() for m in range(self.popSize)
         ]
@@ -190,13 +197,28 @@ class GeneticAlgorithm:
 
         
 class ModelMaker:
-    # makeRandomModel()
-    # makeChildModel()
-    # mutateModel()
-    def __init__(self) -> None:
+    '''
+    Class to make scikit-learn pipeline models
+    -----
+    params
+        :TBD:
+    public methods
+        :makeRandomModel: Makes random model based on choice grids
+        :makeChildModel: Makes model by randomly combining hyperparameters
+                         of two models
+        :mutateModel: Mutate a model by randomly changing n of its hyperparameteers
+    '''
+    def __init__(
+        self, 
+        estimatorType
+    ) -> None:
         pass
     
-    def makeRandomModel()
+    def makeRandomModel(self) -> None:
+        preprocessorChoices = {
+            param: np.random.choice()
+        }
+        
         
     
     
