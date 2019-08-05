@@ -47,8 +47,8 @@ class GeneticAlgorithm:
             :mutateFrac: fraction of models to mutate in a generation
             :keepGraveyard: whether to keep a list of all trained models over generations
             :randomState: seed for random initializations
-        returns
-            self
+        public methods
+            :evolve: evolve a population of models using genetic algorithm techniques
         '''
         assert keepTopFrac + keepBtmFrac + makeChildrenFrac <= 1        
         
@@ -72,7 +72,8 @@ class GeneticAlgorithm:
             self.graveYard = []
             
         self.population = []
-        self.bestModel = None        
+        self.bestModel = None   
+        return None
             
     def evolve(
         self, 
@@ -95,6 +96,7 @@ class GeneticAlgorithm:
         if len(self.population) == 0:
             self._initializePop()
             
+        stopCond = False
         if maxIters is not None and itersNoImprov is not None:
             stopCond = iters == maxIters or itersNoImprov == maxItersNoImprov             
         elif maxIters is not None:
@@ -125,7 +127,8 @@ class GeneticAlgorithm:
                 print(f'Current best fitness: {self.bestModel.fitness}')
                 
             self._killUnfit()
-            self._replenishPop()
+            self._makeChildren()
+            self._makeRemainingRandomModels()
             
         print(
             f'Evolved {iters} generations ({itersNoImprov} generations '
@@ -167,10 +170,95 @@ class GeneticAlgorithm:
         self.population.sort(key=lambda m: m.fitness, reverse=True)
         return None
     
-    def _
+    def _makeChildren(self) -> None:
+        children = []
+        for i in range(self.makeChildN):
+            mother, father = np.random.choice(self.population, size=2, replace=False)
+            child = self.modelMaker.makeChildModel(mother, father)
+            children.append(child)
         
+        childToMutate = np.random.choice(children)
+        self.modelMaker.mutateModel(childToMutate)
         
-                
-                
+        self.population += children
+        return None
+    
+    def _makeRemainingRandomModels(self) -> None:
+        while len(self.population) < self.popSize:
+            self.population.append(self.modelMaker.makeRandomModel())
+        return None
+
         
+class ModelMaker:
+    # makeRandomModel()
+    # makeChildModel()
+    # mutateModel()
+    def __init__(self) -> None:
+        pass
+    
+    def makeRandomModel()
         
+    
+    
+    preprocessorChoiceGrid = {
+        'num_impute_strat': ['mean', 'median'],
+        'cat_encoder_strat': ['one_hot', 'target_mean'],
+        'missing_values': [np.nan, 'DO_NOT_FLAG_MISSING'],
+        'prior_frac': np.linspace(0.01, 1, num=100)
+    }
+    gbmRegressorChoiceGrid = {
+        'loss': ['ls', 'lad'],
+        'n_estimators': np.arange(100, 1000, 100),
+        'subsample': np.linspace(0.1, 1, num=10),
+        'min_samples_leaf': np.arange(1, 10),
+        'max_depth': np.arange(1, 12),
+        'min_impurity_decrease': np.linspace(0, 1, num=10)
+    }
+    rfRegressorChoiceGrid = {
+        'criterion': ['mse', 'mae'],
+        'max_features': ['sqrt', 'log2', None],
+        'n_estimators': np.arange(100, 1000, 100)
+    }
+    enetRegressorChoiceGrid = {
+        # sklearn advises against including very small alpha values
+        'alpha': np.linspace(0.01, 1, num=100), 
+        'l1_ratio': np.concatenate(
+            [np.logspace(-3, -1, num=4), np.linspace(0, 1, num=100)]
+        )
+    }
+    gbmClassifierChoiceGrid = {
+        'learning_rate': np.linspace(0.01, 1, num=100),
+        'n_estimators': np.arange(100, 1000, 100),
+        'subsample': np.linspace(0.1, 1, num=10),
+        'min_samples_leaf': np.arange(2, 10),
+        'max_depth': np.arange(1, 12),
+        'min_impurity_decrease': np.linspace(0, 1, num=10)        
+    }
+    rfClassifierChoiceGrid = {
+        'criterion': ['gini', 'entropy'],
+        'max_features': ['sqrt', 'log2', None],
+        'n_estimators': np.arange(100, 1000, 100)
+    }
+    enetClassifierChoiceGrid = {
+        'loss': ['hinge', 'log'],
+        'alpha': np.concatenate(
+            [np.logspace(-4, -2, num=3), np.linspace(0.1, 1, num=100)]
+        ),
+        'l1_ratio': np.concatenate(
+            [np.logspace(-4, -1, num=4), np.linspace(0, 1, num=100)]
+        ),
+        'learning_rate': ['constant', 'optimal', 'invscaling', 'adaptive'],
+        'eta0': np.concatenate(
+            [np.logspace(-4, -2, num=3), np.linspace(0.1, 1, num=100)]
+        ),
+        'power_t': np.concatenate(
+            [np.logspace(-4, -2, num=3), np.linspace(0.1, 1, num=100)]
+        ),
+        'penalty': ['elastic_net']
+    }
+
+
+
+
+class ModelScorer:
+    pass
