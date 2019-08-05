@@ -158,7 +158,7 @@ class GeneticAlgorithm:
     
     def _getBestModel(self) -> ModelMaker.model:
         self._sortPopByFitness()
-        bestModel = self.population[0]
+        bestModel = self.population.copy()[0]
         return bestModel
         
     def _killUnfit(self) -> None:
