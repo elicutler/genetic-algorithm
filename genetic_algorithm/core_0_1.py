@@ -1,6 +1,8 @@
 import logging
+from typing import Dict, List, Optional, Any
 
 import numpy as np
+import pandas as pd
 
 from sklearn.impute import SimpleImputer, MissingIndicator
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -21,7 +23,6 @@ defaultLogger = DefaultLogger()
 defaultLogger.logger.setLevel(logging.INFO)
 
 class GeneticAlgorithm:
-    
     def __init__(
         self, 
         modelMaker: ModelMaker,
@@ -32,14 +33,14 @@ class GeneticAlgorithm:
         makeChildFrac: float,
         mutateFrac: float,
         keepGraveyard: bool = False,
-        randomState: int = None
+        randomState: Optional[int] = None
     ) -> None:
         '''
         Genetic algorithm for scikit-learn model hyperparameter tuning 
         -----
         params
             :modelMaker: instance of class ModelMaker
-            :modelScorer: instance of class ModelScorer
+            :modelCrossValScorer: instance of class ModelCrossValScorer
             :popSize: number of models in a generation
             :keepTopFrac: fraction of models in a generation to keep from top performers
             :keepBtmFrac: fraction of models in a generation to keeep from rest (randomized)
@@ -57,7 +58,7 @@ class GeneticAlgorithm:
         assert keepTopFrac + keepBtmFrac + makeChildrenFrac <= 1        
         
         self.modelMaker = modelMaker
-        self.modelScorer = modelScorer
+        self.modelCrossValScorer = ModelCrossValScorer
         
         self.popSize = popSize
         self.keepTopFrac = keepTopFrac
@@ -84,8 +85,8 @@ class GeneticAlgorithm:
             
     def evolve(
         self, 
-        maxIters: int = 10, 
-        maxItersNoImprov: int = None, 
+        maxIters: Optional[int] = 10, 
+        maxItersNoImprov: Optional[int] = None, 
         printCurrentBest: bool = False
     ) -> None:
         '''
@@ -153,10 +154,10 @@ class GeneticAlgorithm:
     def _scoreModelsInPop(self) -> None:
         for m in range(self.popSize):
             if self.population[m].fitness is None:
-                self.modelScorer.scoreModel(self.population[m])
+                self.modelCrossValScorer.scoreModel(self.population[m])
         return None
     
-    def _getBestModel(self) -> ModelMaker.model:
+    def _getBestModel(self):
         self._sortPopByFitness()
         bestModel = self.population.copy()[0]
         return bestModel
@@ -201,27 +202,100 @@ class ModelMaker:
     Class to make scikit-learn pipeline models
     -----
     params
-        :TBD:
+        :pipelineMaker: scikit-learn pipeline maker
+        :estimatorType: supervised estimator (maps to scikit-learn estimator class)
+        :preprocessorChoiceGridOverrides: optional preprocessor choice grids 
+                                          to override defaults
+        :estimatorChoiceGridOverrides: optional estimator choice grids 
+                                       to override defaults
     public methods
         :makeRandomModel: Makes random model based on choice grids
         :makeChildModel: Makes model by randomly combining hyperparameters
                          of two models
-        :mutateModel: Mutate a model by randomly changing n of its hyperparameteers
+        :mutateModel: Mutate a model by randomly changing n of its hyperparameters
     '''
     def __init__(
         self, 
-        estimatorType
+        pipelineMaker: PipelineMaker,
+        estimatorType: str,
+        preprocessorChoiceGridOverrides: Optional[Dict[str, list]] = None,
+        estimatorChoiceGridOverrides: Optional[Dict[str, list]] = None,
     ) -> None:
-        pass
+        self.pipelineMaker = pipelineMaker
+        self.estimatorType = estimatorType
+        self.preprocessorChoiceGridOverrides = preprocessorChoiceGridOverrides
+        self.estimatorChoiceGridOverrides = estimatorChoiceGridOverrides
+        
+        if self.estimatorType == 'gbm_regressor':
+            self.estimatorClass = GradientBoostingRegressor
+            self.estimatorChoiceGrid = self.gbmRegressorChoiceGrid
+        elif self.estimatorType == 'rf_regressor':
+            self.estimatorClass = RandomForestRegressor
+            self.estimatorChoiceGrid = self.rfRegressorChoiceGrid
+        elif self.estimatorType == 'enet_regressor':
+            self.estimatorClass = ElasticNet
+            self.estimatorChoiceGrid = self.enetRegressorChoiceGrid
+        elif self.estimatorType == 'gbm_classifier':
+            self.estimatorClass = GradientBoostingClassifier
+            self.estimatorChoiceGrid = self.gbmClassifierChoiceGrid
+        elif self.estimatorType == 'rf_classifier':
+            self.estimatorClass = RandomForestClassifier
+            self.estimatorChoiceGrid = self.rfClassifierChoiceGrid
+        elif self.estimatorType == 'enet_classifier':
+            self.estimatorClass = SGDClassifier
+            self.estimatorChoiceGrid = self.enetClassifierChoiceGrid
+            
+        if self.preprocessorChoiceGridOverrides is not None:
+            self.preprocessorChoiceGrid = {
+                **self.preprocessorChoiceGrid, 
+                **self.preprocessorChoiceGridOverrides
+            }
+        if self.estimatorChoiceGridOverrides is not None:
+            self.estimatorChoiceGrid = {
+                **self.estimatorChoiceGrid,
+                **self.estimatorChoiceGridOverrides
+            }
     
-    def makeRandomModel(self) -> None:
+    def makeRandomModel(self):
         preprocessorChoices = {
-            param: np.random.choice()
+            param: np.random.choice(self.preprocessorChoiceGrid[param])
+            for param in self.preprocessorChoiceGrid.keys()
         }
-        
-        
+        estimatorChoices = {
+            param: np.random.choice(self.estimatorChoiceGrid[param])
+            for param in self.estimatorChoiceGrid.keys()
+        }
+        randomModel = self.pipelineMaker.makePipeline(
+            preprocessorChoices, estimatorChoices
+        )
+        return randomModel
     
+    def makeChildModel(self, mother, father):
+        preprocessorChoices = {
+            param: np.random.choice(
+                *mother.preprocessorChoiceGrid[param],
+                *father.preprocessorChoiceGrid[param]
+            ) for param in self.preprocessorChoiceGrid.keys()
+        }
+        estimatorChoices = {
+            param: np.random.choice(
+                *mother.estimatorChoiceGrid[param],
+                *father.estimatorChoiceGrid[param]
+            ) for param in self.estimatorChoiceGrid.keys()
+        }
+        childModel = self.pipelineMaker.makePipeline(
+            preprocessorChoices, estimatorChoices
+        )
+        return childModel
     
+#     def _makeModel(
+#         self, preprocessorChoices: list, estimatorChoices: list
+#     ) -> sklearn.pipeline.Pipeline:
+#         pipeline = self.pipelineMaker.makePipeline(
+#             preprocesorChoices, estimatorChoices
+#         )
+#         return pipeline
+        
     preprocessorChoiceGrid = {
         'num_impute_strat': ['mean', 'median'],
         'cat_encoder_strat': ['one_hot', 'target_mean'],
@@ -280,7 +354,109 @@ class ModelMaker:
     }
 
 
+class ModelCrossValScorer:
+    '''
+    Class to evaluate model accuracy given data and evaluation criteria
+    -----
+    params
+        :estimator: scikit-learn estimator or pipeline
+        :X: input data array
+        :y: target data array
+        :scoring: metric to evaluate model accuracy
+        :crossValidator: scikit-learn cross validation scheme
+        :errorScore: how to score CV folds that encounter errors
+    public methods
+        :scoreModel: Evaluate model accuracy, given data and evaluation criteria
+    '''
+    def __init__(
+        self,
+        estimator: sklearn.pipeline.Pipeline,
+        X: np.array,
+        y: np.array,
+        evalMetric,
+        crossValidator,
+        errorScore=np.nan
+    ) -> None:
+        self.estimator = estimator
+        self.X = X
+        self.y = y
+        self.scoring = scoring
+        self.crossValidator = crossValidator
+        self.evalMetric = evalMetric
+        return None
+    
+    def scoreModel(self, aggregator: str = 'mean') -> float:
+        '''
+        score model using scikit-learn's cross_val_score
+        -----
+        params
+            :aggregator: how to extract single metric from array of CV fold scores
+        returns
+            model score (float)
+        '''
+        crossValScores = cross_val_score(
+            estimator=self.estimator, X=X, y=y, scoring=self.evalMetric,
+            cv=self.crossValidator, error_score=self.errorScore
+        )
+        if aggregator == 'mean':
+            modelScore = self._getMeanCrossValScore(crossValScores)
+        return modelScore
+    
+    def _getMeanCrossValScore(self, crossValScores: np.array) -> float:
+        meanCrossValScore = (
+            crossValScores.mean() 
+            if not np.isnan(crossValScores).all() else np.NINF
+        )
+        return meanCrossValScore
+        
 
-
-class ModelScorer:
-    pass
+class PipelineMaker:
+    def __init__(
+        self,
+        estimatorClass,
+        numFeatures: List[str],
+        catFeatures: List[str],
+        numImputeStrat: str,
+        catEncoderStrat: str
+        missingValues,
+        tmePriorFrac: float,
+        randomState: Optional[int] = None
+    ) -> None:
+        self.estimatorClass = estimatorClass
+        self.numFeatures = numFeatures
+        self.catFeatures = catFeatures
+        self.numImputeStrat = numImputeStrat
+        self.catEncoderStrat = catEncoderStrat
+        self.missingValues = missingValues
+        self.tmePriorFrac = tmePriorFrac
+        self.randomState = randomState
+        return None
+    
+    def makePipeline(
+        self,
+        estimatorChoices: list,
+        preprocessorChoices: list
+    ) -> sklearn.pipeline.Pipeline:
+        
+        preprocessor = self._makePreprocessor(preprocessorChoices)
+        estimator = self._makeEstimator(estimatorChoices)
+        pipeline = Pipeline([
+            ('preprocessor', preprocessor),
+            ('estimator', estimator)
+        ])
+        return pipeline
+    
+    def _makePreprocessor(
+        self, preprocessorChoices
+    ) -> sklearn.pipeline.FeatureUnion:
+        
+        catEncoder = self._getCatEncoder(catEncoderStrat)
+        
+    def _getCatEncoder(self, catEncoderStrat):
+        if catEncoderStrat == 'one_hot':
+            catEncoder = OneHotEncoder(handle_unknown='ignore')
+        elif catEncoderStrat == 'target_mean':
+            catEncoder = TargetMeanEncoder(prior_frac=self.tmePriorFrac)
+        return catEncoder
+        
+    
