@@ -1,26 +1,27 @@
-import logging
-from typing import Dict, List, Optional, Any, Union
+# from typing import Dict, List, Optional, Any, Union
 
-import numpy as np
-import pandas as pd
+# import numpy as np
+# import pandas as pd
 
-from sklearn.impute import SimpleImputer, MissingIndicator
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.linear_model import ElasticNet, SGDClassifier
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor  
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.compose import ColumnTransformer
-from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
-from sklearn.model_selection import TimeSeriesSplit, cross_val_score
-from xgboost import XGBRegressor, XGBClassifier
+# from sklearn.impute import SimpleImputer, MissingIndicator
+# from sklearn.preprocessing import OneHotEncoder, StandardScaler
+# from sklearn.linear_model import ElasticNet, SGDClassifier
+# from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor  
+# from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+# from sklearn.pipeline import Pipeline, FeatureUnion
+# from sklearn.compose import ColumnTransformer
+# from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
+# from sklearn.model_selection import TimeSeriesSplit, cross_val_score
+# from xgboost import XGBRegressor, XGBClassifier
 
-from genetic_algorithm.utils.sklearn_custom_transformers import TargetMeanEncoder
-from genetic_algorithm.default_logger import DefaultLogger
+# from genetic_algorithm.utils.sklearn_custom_transformers import TargetMeanEncoder
 
-class DefaultLogger: pass
-defaultLogger = DefaultLogger()
-defaultLogger.logger.setLevel(logging.INFO)
+from genetic_algorithm.utils.model_maker import ModelMaker
+
+# from genetic_algorithm.default_logger import DefaultLogger
+# class DefaultLogger: pass
+# defaultLogger = DefaultLogger()
+# defaultLogger.logger.setLevel(logging.INFO)
 
 class GeneticAlgorithm:
     def __init__(
@@ -197,294 +198,294 @@ class GeneticAlgorithm:
         return None
 
         
-class ModelMaker:
-    '''
-    Class to make scikit-learn pipeline models
-    -----
-    params
-        :pipelineMaker: scikit-learn pipeline maker
-        :estimatorType: supervised estimator (maps to scikit-learn estimator class)
-        :preprocessorChoiceGridOverrides: optional preprocessor choice grids 
-                                          to override defaults
-        :estimatorChoiceGridOverrides: optional estimator choice grids 
-                                       to override defaults
-    public methods
-        :makeRandomModel: Makes random model based on choice grids
-        :makeChildModel: Makes model by randomly combining hyperparameters
-                         of two models
-        :mutateModel: Mutate a model by randomly changing n of its hyperparameters
-    '''
-    def __init__(
-        self, 
-        pipelineMaker: PipelineMaker,
-        estimatorType: str,
-        preprocessorChoiceGridOverrides: Optional[Dict[str, list]] = None,
-        estimatorChoiceGridOverrides: Optional[Dict[str, list]] = None,
-    ):
-        self.pipelineMaker = pipelineMaker
-        self.estimatorType = estimatorType
-        self.preprocessorChoiceGridOverrides = preprocessorChoiceGridOverrides
-        self.estimatorChoiceGridOverrides = estimatorChoiceGridOverrides
+# class ModelMaker:
+#     '''
+#     Class to make scikit-learn pipeline models
+#     -----
+#     params
+#         :pipelineMaker: scikit-learn pipeline maker
+#         :estimatorType: supervised estimator (maps to scikit-learn estimator class)
+#         :preprocessorChoiceGridOverrides: optional preprocessor choice grids 
+#                                           to override defaults
+#         :estimatorChoiceGridOverrides: optional estimator choice grids 
+#                                        to override defaults
+#     public methods
+#         :makeRandomModel: Makes random model based on choice grids
+#         :makeChildModel: Makes model by randomly combining hyperparameters
+#                          of two models
+#         :mutateModel: Mutate a model by randomly changing n of its hyperparameters
+#     '''
+#     def __init__(
+#         self, 
+#         pipelineMaker: PipelineMaker,
+#         estimatorType: str,
+#         preprocessorChoiceGridOverrides: Optional[Dict[str, list]] = None,
+#         estimatorChoiceGridOverrides: Optional[Dict[str, list]] = None,
+#     ):
+#         self.pipelineMaker = pipelineMaker
+#         self.estimatorType = estimatorType
+#         self.preprocessorChoiceGridOverrides = preprocessorChoiceGridOverrides
+#         self.estimatorChoiceGridOverrides = estimatorChoiceGridOverrides
         
-        if self.estimatorType == 'gbm_regressor':
-            self.estimatorClass = GradientBoostingRegressor
-            self.estimatorChoiceGrid = self.gbmRegressorChoiceGrid
-        elif self.estimatorType == 'rf_regressor':
-            self.estimatorClass = RandomForestRegressor
-            self.estimatorChoiceGrid = self.rfRegressorChoiceGrid
-        elif self.estimatorType == 'enet_regressor':
-            self.estimatorClass = ElasticNet
-            self.estimatorChoiceGrid = self.enetRegressorChoiceGrid
-        elif self.estimatorType == 'gbm_classifier':
-            self.estimatorClass = GradientBoostingClassifier
-            self.estimatorChoiceGrid = self.gbmClassifierChoiceGrid
-        elif self.estimatorType == 'rf_classifier':
-            self.estimatorClass = RandomForestClassifier
-            self.estimatorChoiceGrid = self.rfClassifierChoiceGrid
-        elif self.estimatorType == 'enet_classifier':
-            self.estimatorClass = SGDClassifier
-            self.estimatorChoiceGrid = self.enetClassifierChoiceGrid
+#         if self.estimatorType == 'gbm_regressor':
+#             self.estimatorClass = GradientBoostingRegressor
+#             self.estimatorChoiceGrid = self.gbmRegressorChoiceGrid
+#         elif self.estimatorType == 'rf_regressor':
+#             self.estimatorClass = RandomForestRegressor
+#             self.estimatorChoiceGrid = self.rfRegressorChoiceGrid
+#         elif self.estimatorType == 'enet_regressor':
+#             self.estimatorClass = ElasticNet
+#             self.estimatorChoiceGrid = self.enetRegressorChoiceGrid
+#         elif self.estimatorType == 'gbm_classifier':
+#             self.estimatorClass = GradientBoostingClassifier
+#             self.estimatorChoiceGrid = self.gbmClassifierChoiceGrid
+#         elif self.estimatorType == 'rf_classifier':
+#             self.estimatorClass = RandomForestClassifier
+#             self.estimatorChoiceGrid = self.rfClassifierChoiceGrid
+#         elif self.estimatorType == 'enet_classifier':
+#             self.estimatorClass = SGDClassifier
+#             self.estimatorChoiceGrid = self.enetClassifierChoiceGrid
             
-        if self.preprocessorChoiceGridOverrides is not None:
-            self.preprocessorChoiceGrid = {
-                **self.preprocessorChoiceGrid, 
-                **self.preprocessorChoiceGridOverrides
-            }
-        if self.estimatorChoiceGridOverrides is not None:
-            self.estimatorChoiceGrid = {
-                **self.estimatorChoiceGrid,
-                **self.estimatorChoiceGridOverrides
-            }
+#         if self.preprocessorChoiceGridOverrides is not None:
+#             self.preprocessorChoiceGrid = {
+#                 **self.preprocessorChoiceGrid, 
+#                 **self.preprocessorChoiceGridOverrides
+#             }
+#         if self.estimatorChoiceGridOverrides is not None:
+#             self.estimatorChoiceGrid = {
+#                 **self.estimatorChoiceGrid,
+#                 **self.estimatorChoiceGridOverrides
+#             }
     
-    def makeRandomModel(self):
-        preprocessorChoices = {
-            param: np.random.choice(self.preprocessorChoiceGrid[param])
-            for param in self.preprocessorChoiceGrid.keys()
-        }
-        estimatorChoices = {
-            param: np.random.choice(self.estimatorChoiceGrid[param])
-            for param in self.estimatorChoiceGrid.keys()
-        }
-        randomModel = self.pipelineMaker.makePipeline(
-            preprocessorChoices, estimatorChoices
-        )
-        return randomModel
-    
-    def makeChildModel(self, mother, father):
-        preprocessorChoices = {
-            param: np.random.choice(
-                *mother.preprocessorChoiceGrid[param],
-                *father.preprocessorChoiceGrid[param]
-            ) for param in self.preprocessorChoiceGrid.keys()
-        }
-        estimatorChoices = {
-            param: np.random.choice(
-                *mother.estimatorChoiceGrid[param],
-                *father.estimatorChoiceGrid[param]
-            ) for param in self.estimatorChoiceGrid.keys()
-        }
-        childModel = self.pipelineMaker.makePipeline(
-            preprocessorChoices, estimatorChoices
-        )
-        return childModel
-    
-#     def _makeModel(
-#         self, preprocessorChoices: list, estimatorChoices: list
-#     ) -> sklearn.pipeline.Pipeline:
-#         pipeline = self.pipelineMaker.makePipeline(
-#             preprocesorChoices, estimatorChoices
+#     def makeRandomModel(self):
+#         preprocessorChoices = {
+#             param: np.random.choice(self.preprocessorChoiceGrid[param])
+#             for param in self.preprocessorChoiceGrid.keys()
+#         }
+#         estimatorChoices = {
+#             param: np.random.choice(self.estimatorChoiceGrid[param])
+#             for param in self.estimatorChoiceGrid.keys()
+#         }
+#         randomModel = self.pipelineMaker.makePipeline(
+#             preprocessorChoices, estimatorChoices
 #         )
+#         return randomModel
+    
+#     def makeChildModel(self, mother, father):
+#         preprocessorChoices = {
+#             param: np.random.choice(
+#                 *mother.preprocessorChoiceGrid[param],
+#                 *father.preprocessorChoiceGrid[param]
+#             ) for param in self.preprocessorChoiceGrid.keys()
+#         }
+#         estimatorChoices = {
+#             param: np.random.choice(
+#                 *mother.estimatorChoiceGrid[param],
+#                 *father.estimatorChoiceGrid[param]
+#             ) for param in self.estimatorChoiceGrid.keys()
+#         }
+#         childModel = self.pipelineMaker.makePipeline(
+#             preprocessorChoices, estimatorChoices
+#         )
+#         return childModel
+    
+# #     def _makeModel(
+# #         self, preprocessorChoices: list, estimatorChoices: list
+# #     ) -> sklearn.pipeline.Pipeline:
+# #         pipeline = self.pipelineMaker.makePipeline(
+# #             preprocesorChoices, estimatorChoices
+# #         )
+# #         return pipeline
+        
+#     preprocessorChoiceGrid = {
+#         'numImputerStrat': ['mean', 'median'],
+#         'catEncoderStrat': ['oneHot', 'targetMean'],
+#         'missingValues': [np.nan, 'DO_NOT_FLAG_MISSING'],
+#         'tmePriorFrac': np.linspace(0.01, 1, num=100)
+#     }
+#     gbmRegressorChoiceGrid = {
+#         'loss': ['ls', 'lad'],
+#         'n_estimators': np.arange(100, 1000, 100),
+#         'subsample': np.linspace(0.1, 1, num=10),
+#         'min_samples_leaf': np.arange(1, 10),
+#         'max_depth': np.arange(1, 12),
+#         'min_impurity_decrease': np.linspace(0, 1, num=10)
+#     }
+#     rfRegressorChoiceGrid = {
+#         'criterion': ['mse', 'mae'],
+#         'max_features': ['sqrt', 'log2', None],
+#         'n_estimators': np.arange(100, 1000, 100)
+#     }
+#     enetRegressorChoiceGrid = {
+#         # sklearn advises against including very small alpha values
+#         'alpha': np.linspace(0.01, 1, num=100), 
+#         'l1_ratio': np.concatenate(
+#             [np.logspace(-3, -1, num=4), np.linspace(0, 1, num=100)]
+#         )
+#     }
+#     gbmClassifierChoiceGrid = {
+#         'learning_rate': np.linspace(0.01, 1, num=100),
+#         'n_estimators': np.arange(100, 1000, 100),
+#         'subsample': np.linspace(0.1, 1, num=10),
+#         'min_samples_leaf': np.arange(2, 10),
+#         'max_depth': np.arange(1, 12),
+#         'min_impurity_decrease': np.linspace(0, 1, num=10)        
+#     }
+#     rfClassifierChoiceGrid = {
+#         'criterion': ['gini', 'entropy'],
+#         'max_features': ['sqrt', 'log2', None],
+#         'n_estimators': np.arange(100, 1000, 100)
+#     }
+#     enetClassifierChoiceGrid = {
+#         'loss': ['hinge', 'log'],
+#         'alpha': np.concatenate(
+#             [np.logspace(-4, -2, num=3), np.linspace(0.1, 1, num=100)]
+#         ),
+#         'l1_ratio': np.concatenate(
+#             [np.logspace(-4, -1, num=4), np.linspace(0, 1, num=100)]
+#         ),
+#         'learning_rate': ['constant', 'optimal', 'invscaling', 'adaptive'],
+#         'eta0': np.concatenate(
+#             [np.logspace(-4, -2, num=3), np.linspace(0.1, 1, num=100)]
+#         ),
+#         'power_t': np.concatenate(
+#             [np.logspace(-4, -2, num=3), np.linspace(0.1, 1, num=100)]
+#         ),
+#         'penalty': ['elastic_net']
+#     }
+
+
+# class ModelCrossValScorer:
+#     '''
+#     Class to evaluate model accuracy given data and evaluation criteria
+#     -----
+#     params
+#         :estimator: scikit-learn estimator or pipeline
+#         :X: input data array
+#         :y: target data array
+#         :scoring: metric to evaluate model accuracy
+#         :crossValidator: scikit-learn cross validation scheme
+#         :errorScore: how to score CV folds that encounter errors
+#     public methods
+#         :scoreModel: Evaluate model accuracy, given data and evaluation criteria
+#     '''
+#     def __init__(
+#         self,
+#         estimator: Pipeline,
+#         X: np.array,
+#         y: np.array,
+#         evalMetric,
+#         crossValidator,
+#         errorScore=np.nan
+#     ):
+#         self.estimator = estimator
+#         self.X = X
+#         self.y = y
+#         self.scoring = scoring
+#         self.crossValidator = crossValidator
+#         self.evalMetric = evalMetric
+#         return None
+    
+#     def scoreModel(self, aggregator: str = 'mean') -> float:
+#         '''
+#         score model using scikit-learn's cross_val_score
+#         -----
+#         params
+#             :aggregator: how to extract single metric from array of CV fold scores
+#         returns
+#             model score (float)
+#         '''
+#         crossValScores = cross_val_score(
+#             estimator=self.estimator, X=X, y=y, scoring=self.evalMetric,
+#             cv=self.crossValidator, error_score=self.errorScore
+#         )
+#         if aggregator == 'mean':
+#             modelScore = self._getMeanCrossValScore(crossValScores)
+#         return modelScore
+    
+#     def _getMeanCrossValScore(self, crossValScores: np.array) -> float:
+#         meanCrossValScore = (
+#             crossValScores.mean() 
+#             if not np.isnan(crossValScores).all() else np.NINF
+#         )
+#         return meanCrossValScore
+        
+
+# class PipelineMaker:
+#     def __init__(
+#         self,
+#         estimatorClass,
+#         numFeatures: List[str],
+#         catFeatures: List[str],
+#         randomState: Optional[int] = None
+#     ):
+#         self.estimatorClass = estimatorClass
+#         self.numFeatures = numFeatures
+#         self.catFeatures = catFeatures
+#         self.randomState = randomState
+#         return None
+    
+#     def makePipeline(
+#         self,
+#         preprocessorChoices: list,
+#         estimatorChoices: list
+#     ) -> sklearn.pipeline.Pipeline:
+        
+#         preprocessor = self._makePreprocessor(**preprocessorChoices)
+#         estimator = self._makeEstimator(estimatorChoices)
+#         pipeline = Pipeline([
+#             ('preprocessor', preprocessor),
+#             ('estimator', estimator)
+#         ])
 #         return pipeline
-        
-    preprocessorChoiceGrid = {
-        'numImputerStrat': ['mean', 'median'],
-        'catEncoderStrat': ['oneHot', 'targetMean'],
-        'missingValues': [np.nan, 'DO_NOT_FLAG_MISSING'],
-        'tmePriorFrac': np.linspace(0.01, 1, num=100)
-    }
-    gbmRegressorChoiceGrid = {
-        'loss': ['ls', 'lad'],
-        'n_estimators': np.arange(100, 1000, 100),
-        'subsample': np.linspace(0.1, 1, num=10),
-        'min_samples_leaf': np.arange(1, 10),
-        'max_depth': np.arange(1, 12),
-        'min_impurity_decrease': np.linspace(0, 1, num=10)
-    }
-    rfRegressorChoiceGrid = {
-        'criterion': ['mse', 'mae'],
-        'max_features': ['sqrt', 'log2', None],
-        'n_estimators': np.arange(100, 1000, 100)
-    }
-    enetRegressorChoiceGrid = {
-        # sklearn advises against including very small alpha values
-        'alpha': np.linspace(0.01, 1, num=100), 
-        'l1_ratio': np.concatenate(
-            [np.logspace(-3, -1, num=4), np.linspace(0, 1, num=100)]
-        )
-    }
-    gbmClassifierChoiceGrid = {
-        'learning_rate': np.linspace(0.01, 1, num=100),
-        'n_estimators': np.arange(100, 1000, 100),
-        'subsample': np.linspace(0.1, 1, num=10),
-        'min_samples_leaf': np.arange(2, 10),
-        'max_depth': np.arange(1, 12),
-        'min_impurity_decrease': np.linspace(0, 1, num=10)        
-    }
-    rfClassifierChoiceGrid = {
-        'criterion': ['gini', 'entropy'],
-        'max_features': ['sqrt', 'log2', None],
-        'n_estimators': np.arange(100, 1000, 100)
-    }
-    enetClassifierChoiceGrid = {
-        'loss': ['hinge', 'log'],
-        'alpha': np.concatenate(
-            [np.logspace(-4, -2, num=3), np.linspace(0.1, 1, num=100)]
-        ),
-        'l1_ratio': np.concatenate(
-            [np.logspace(-4, -1, num=4), np.linspace(0, 1, num=100)]
-        ),
-        'learning_rate': ['constant', 'optimal', 'invscaling', 'adaptive'],
-        'eta0': np.concatenate(
-            [np.logspace(-4, -2, num=3), np.linspace(0.1, 1, num=100)]
-        ),
-        'power_t': np.concatenate(
-            [np.logspace(-4, -2, num=3), np.linspace(0.1, 1, num=100)]
-        ),
-        'penalty': ['elastic_net']
-    }
-
-
-class ModelCrossValScorer:
-    '''
-    Class to evaluate model accuracy given data and evaluation criteria
-    -----
-    params
-        :estimator: scikit-learn estimator or pipeline
-        :X: input data array
-        :y: target data array
-        :scoring: metric to evaluate model accuracy
-        :crossValidator: scikit-learn cross validation scheme
-        :errorScore: how to score CV folds that encounter errors
-    public methods
-        :scoreModel: Evaluate model accuracy, given data and evaluation criteria
-    '''
-    def __init__(
-        self,
-        estimator: Pipeline,
-        X: np.array,
-        y: np.array,
-        evalMetric,
-        crossValidator,
-        errorScore=np.nan
-    ):
-        self.estimator = estimator
-        self.X = X
-        self.y = y
-        self.scoring = scoring
-        self.crossValidator = crossValidator
-        self.evalMetric = evalMetric
-        return None
     
-    def scoreModel(self, aggregator: str = 'mean') -> float:
-        '''
-        score model using scikit-learn's cross_val_score
-        -----
-        params
-            :aggregator: how to extract single metric from array of CV fold scores
-        returns
-            model score (float)
-        '''
-        crossValScores = cross_val_score(
-            estimator=self.estimator, X=X, y=y, scoring=self.evalMetric,
-            cv=self.crossValidator, error_score=self.errorScore
-        )
-        if aggregator == 'mean':
-            modelScore = self._getMeanCrossValScore(crossValScores)
-        return modelScore
-    
-    def _getMeanCrossValScore(self, crossValScores: np.array) -> float:
-        meanCrossValScore = (
-            crossValScores.mean() 
-            if not np.isnan(crossValScores).all() else np.NINF
-        )
-        return meanCrossValScore
+#     def _makePreprocessor(
+#         self, 
+#         numImputerStrat: str = 'mean',
+#         catEncoderStrat: str = 'oneHot',
+#         missingValues: Union[float, str] = np.nan,
+#         tmePriorFrac: Optional[float] = None
+#     ) -> FeatureUnion:
         
-
-class PipelineMaker:
-    def __init__(
-        self,
-        estimatorClass,
-        numFeatures: List[str],
-        catFeatures: List[str],
-        randomState: Optional[int] = None
-    ):
-        self.estimatorClass = estimatorClass
-        self.numFeatures = numFeatures
-        self.catFeatures = catFeatures
-        self.randomState = randomState
-        return None
-    
-    def makePipeline(
-        self,
-        preprocessorChoices: list
-        estimatorChoices: list,
-    ) -> sklearn.pipeline.Pipeline:
+#         catEncoder = self._getCatEncoder(catEncoderStrat)
+#         numPipe = Pipeline([
+#             ('numImputer', SimpleImputer(strategy=numImputerStrat)),
+#             ('numScaler', StandardScaler())
+#         ])
+#         catPipe = Pipeline([
+#             ('catImputer', SimpleImputer(strategy='most_frequent')),
+#             ('catEncoder', catEncoder)
+#         ])
+#         numCatPipe = ColumnTransformer([
+#             ('numPipe', numPipe, self.numFeatures),
+#             ('catPipe', catPipe, self.catFeatures)
+#         ])
+#         preprocessor = FeatureUnion([
+#             ('numCatPipe', numCatPipe),
+#             ('missingFlagger', 
+#              MissingIndicator(missing_values=missingValues, features='all')
+#             )
+#         ])
+#         return preprocessor
         
-        preprocessor = self._makePreprocessor(**preprocessorChoices)
-        estimator = self._makeEstimator(estimatorChoices)
-        pipeline = Pipeline([
-            ('preprocessor', preprocessor),
-            ('estimator', estimator)
-        ])
-        return pipeline
-    
-    def _makePreprocessor(
-        self, 
-        numImputerStrat: str = 'mean',
-        catEncoderStrat: str = 'oneHot',
-        missingValues: Union[float, str] = np.nan,
-        tmePriorFrac: Optional[float] = None
-    ) -> FeatureUnion:
+#     @staticmethod
+#     def _getCatEncoder(
+#         catEncoderStrat: str, 
+#         tmePriorFrac: Optional[float] = None
+#     ) -> Optional[OneHotEncoder, TargetMeanEncoder]:
         
-        catEncoder = self._getCatEncoder(catEncoderStrat)
-        numPipe = Pipeline([
-            ('numImputer', SimpleImputer(strategy=numImputerStrat)),
-            ('numScaler', StandardScaler())
-        ])
-        catPipe = Pipeline([
-            ('catImputer', SimpleImputer(strategy='most_frequent')),
-            ('catEncoder', catEncoder)
-        ])
-        numCatPipe = ColumnTransformer([
-            ('numPipe', numPipe, self.numFeatures),
-            ('catPipe', catPipe, self.catFeatures)
-        ])
-        preprocessor = FeatureUnion([
-            ('numCatPipe', numCatPipe),
-            ('missingFlagger', 
-             MissingIndicator(missing_values=missingValues, features='all')
-            )
-        ])
-        return preprocessor
+#         if catEncoderStrat == 'oneHot':
+#             catEncoder = OneHotEncoder(handle_unknown='ignore')
+#         elif catEncoderStrat == 'targetMean':
+#             catEncoder = TargetMeanEncoder(prior_frac=tmePriorFrac)
+#         return catEncoder
         
-    @staticmethod
-    def _getCatEncoder(
-        catEncoderStrat: str, 
-        tmePriorFrac: Optional[float] = None
-    ) -> Optional[OneHotEncoder, TargetMeanEncoder]:
-        
-        if catEncoderStrat == 'oneHot':
-            catEncoder = OneHotEncoder(handle_unknown='ignore')
-        elif catEncoderStrat == 'targetMean':
-            catEncoder = TargetMeanEncoder(prior_frac=tmePriorFrac)
-        return catEncoder
-        
-    def _makeEstimator(
-        self, 
-        estimatorChoices: dict,
-    ): # make conditional based on estimator class
-        estimator = self.estimatorClass(
-            **estimatorChoices, random_state=self.randomState
-        )
-        return estimator
+#     def _makeEstimator(
+#         self, 
+#         estimatorChoices: dict,
+#     ): # make conditional based on estimator class
+#         estimator = self.estimatorClass(
+#             **estimatorChoices, random_state=self.randomState
+#         )
+#         return estimator
     

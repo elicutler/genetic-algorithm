@@ -1,7 +1,7 @@
 setup.py
+genetic_algorithm/__core.py
 genetic_algorithm/__init__.py
 genetic_algorithm/core.py
-genetic_algorithm/core_0_1.py
 genetic_algorithm.egg-info/PKG-INFO
 genetic_algorithm.egg-info/SOURCES.txt
 genetic_algorithm.egg-info/dependency_links.txt
