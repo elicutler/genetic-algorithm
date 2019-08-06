@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 
 import numpy as np
 import pandas as pd
@@ -297,10 +297,10 @@ class ModelMaker:
 #         return pipeline
         
     preprocessorChoiceGrid = {
-        'num_impute_strat': ['mean', 'median'],
-        'cat_encoder_strat': ['one_hot', 'target_mean'],
-        'missing_values': [np.nan, 'DO_NOT_FLAG_MISSING'],
-        'prior_frac': np.linspace(0.01, 1, num=100)
+        'numImputerStrat': ['mean', 'median'],
+        'catEncoderStrat': ['oneHot', 'targetMean'],
+        'missingValues': [np.nan, 'DO_NOT_FLAG_MISSING'],
+        'tmePriorFrac': np.linspace(0.01, 1, num=100)
     }
     gbmRegressorChoiceGrid = {
         'loss': ['ls', 'lad'],
@@ -370,7 +370,7 @@ class ModelCrossValScorer:
     '''
     def __init__(
         self,
-        estimator: sklearn.pipeline.Pipeline,
+        estimator: Pipeline,
         X: np.array,
         y: np.array,
         evalMetric,
@@ -416,30 +416,22 @@ class PipelineMaker:
         estimatorClass,
         numFeatures: List[str],
         catFeatures: List[str],
-        numImputeStrat: str,
-        catEncoderStrat: str
-        missingValues,
-        tmePriorFrac: float,
         randomState: Optional[int] = None
     ) -> None:
         self.estimatorClass = estimatorClass
         self.numFeatures = numFeatures
         self.catFeatures = catFeatures
-        self.numImputeStrat = numImputeStrat
-        self.catEncoderStrat = catEncoderStrat
-        self.missingValues = missingValues
-        self.tmePriorFrac = tmePriorFrac
         self.randomState = randomState
         return None
     
     def makePipeline(
         self,
-        estimatorChoices: list,
         preprocessorChoices: list
+        estimatorChoices: list,
     ) -> sklearn.pipeline.Pipeline:
         
-        preprocessor = self._makePreprocessor(preprocessorChoices)
-        estimator = self._makeEstimator(estimatorChoices)
+        preprocessor = self._makePreprocessor(**preprocessorChoices)
+        estimator = self._makeEstimator(**estimatorChoices)
         pipeline = Pipeline([
             ('preprocessor', preprocessor),
             ('estimator', estimator)
@@ -447,16 +439,47 @@ class PipelineMaker:
         return pipeline
     
     def _makePreprocessor(
-        self, preprocessorChoices
-    ) -> sklearn.pipeline.FeatureUnion:
+        self, 
+        numImputerStrat: str = 'mean',
+        catEncoderStrat: str = 'oneHot',
+        missingValues: Union[float, str] = np.nan,
+        tmePriorFrac: Optional[float] = None
+    ) -> FeatureUnion:
         
         catEncoder = self._getCatEncoder(catEncoderStrat)
+        numPipe = Pipeline([
+            ('numImputer', SimpleImputer(strategy=numImputerStrat)),
+            ('numScaler', StandardScaler())
+        ])
+        catPipe = Pipeline([
+            ('catImputer', SimpleImputer(strategy='most_frequent')),
+            ('catEncoder', catEncoder)
+        ])
+        numCatPipe = ColumnTransformer([
+            ('numPipe', numPipe, self.numFeatures),
+            ('catPipe', catPipe, self.catFeatures)
+        ])
+        preprocessor = FeatureUnion([
+            ('numCatPipe', numCatPipe),
+            ('missingFlagger', 
+             MissingIndicator(missing_values=missingValues, features='all')
+            )
+        ])
+        return preprocessor
         
-    def _getCatEncoder(self, catEncoderStrat):
-        if catEncoderStrat == 'one_hot':
+    @staticmethod
+    def _getCatEncoder(
+        catEncoderStrat: str, 
+        tmePriorFrac: Optional[float] = None
+    ) -> Optional[OneHotEncoder, TargetMeanEncoder]:
+        
+        if catEncoderStrat == 'oneHot':
             catEncoder = OneHotEncoder(handle_unknown='ignore')
-        elif catEncoderStrat == 'target_mean':
-            catEncoder = TargetMeanEncoder(prior_frac=self.tmePriorFrac)
+        elif catEncoderStrat == 'targetMean':
+            catEncoder = TargetMeanEncoder(prior_frac=tmePriorFrac)
         return catEncoder
         
+    def _makeEstimator(
+        self, 
+    ): # make conditional based on estimator class
     
