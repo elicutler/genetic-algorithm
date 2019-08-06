@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -12,20 +12,20 @@ class TargetMeanEncoder(BaseEstimator, TransformerMixin):
         priorSize: Optional[int] = None, 
         priorFrac: Optional[float] = None
     ):
-        
-        assert not (priorSize > 0 and priorFrac > 0)
-        
+        assert not (priorSize is not None and priorFrac is not None), (
+            'Optionally set either priorSize or priorFrac, but not both'
+        )        
         self.priorSize = priorSize
         self.priorFrac = priorFrac
         
-    def fit(self, X, y):
+    def fit(
+        self, 
+        X: Union[pd.DataFrame, np.array], 
+        y: Union[pd.Series, np.array]
+    ) -> TargetMeanEncoder:
         
-        X = X.values if isinstance(X, pd.DataFrame) else X  
-
-        if isinstance(y, pd.Series):
-            y = y.values.reshape(y.shape[0], 1)  
-        elif np.ndim(y) == 1:
-            y = y.reshape(y.shape[0], 1)
+        X = self._makeSameDimArray(X)
+        y = self._makeNx1Array(y)
 
         dataArr = np.concatenate((X, y), axis=1)
         
@@ -78,6 +78,19 @@ class TargetMeanEncoder(BaseEstimator, TransformerMixin):
             self.grandMean = grandMean
                 
         return self
+    
+    @staticmethod
+    def _getSameDimArray(X: Union[pd.DataFrame, np.array]) -> np.array:
+        sameDimArray = X.values if isinstance(X, pd.DataFrame) else X  
+        return xArray
+    
+    @staticmethod
+    def _makeNx1Array(y: Union[pd.Series, np.array]) -> np.array:
+        if isinstance(y, pd.Series):
+            Nx1Array = y.values.reshape(y.shape[0], 1)  
+        elif np.ndim(y) == 1:
+            Nx1Array = y.reshape(y.shape[0], 1)
+        return Nx1Array
         
     def transform(self, X: np.array) -> np.array:
         
