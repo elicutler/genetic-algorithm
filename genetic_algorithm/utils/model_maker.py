@@ -1,3 +1,9 @@
+from typing import Optional, Dict
+
+import numpy as np
+
+from sklearn.pipeline import Pipeline
+
 from genetic_algorithm.utils.pipeline_maker import PipelineMaker
 
 class ModelMaker:

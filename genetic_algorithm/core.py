@@ -1,27 +1,7 @@
-# from typing import Dict, List, Optional, Any, Union
-
-# import numpy as np
-# import pandas as pd
-
-# from sklearn.impute import SimpleImputer, MissingIndicator
-# from sklearn.preprocessing import OneHotEncoder, StandardScaler
-# from sklearn.linear_model import ElasticNet, SGDClassifier
-# from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor  
-# from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-# from sklearn.pipeline import Pipeline, FeatureUnion
-# from sklearn.compose import ColumnTransformer
-# from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
-# from sklearn.model_selection import TimeSeriesSplit, cross_val_score
-# from xgboost import XGBRegressor, XGBClassifier
-
-# from genetic_algorithm.utils.sklearn_custom_transformers import TargetMeanEncoder
+from typing import Optional
 
 from genetic_algorithm.utils.model_maker import ModelMaker
-
-# from genetic_algorithm.default_logger import DefaultLogger
-# class DefaultLogger: pass
-# defaultLogger = DefaultLogger()
-# defaultLogger.logger.setLevel(logging.INFO)
+from genetic_algorithm.utils.model_scorer import ModelScorer
 
 class GeneticAlgorithm:
     def __init__(
@@ -41,7 +21,7 @@ class GeneticAlgorithm:
         -----
         params
             :modelMaker: instance of class ModelMaker
-            :modelCrossValScorer: instance of class ModelCrossValScorer
+            :modelScorer: instance of class ModelScorer
             :popSize: number of models in a generation
             :keepTopFrac: fraction of models in a generation to keep from top performers
             :keepBtmFrac: fraction of models in a generation to keeep from rest (randomized)
@@ -59,7 +39,7 @@ class GeneticAlgorithm:
         assert keepTopFrac + keepBtmFrac + makeChildrenFrac <= 1        
         
         self.modelMaker = modelMaker
-        self.modelCrossValScorer = ModelCrossValScorer
+        self.modelScorer = ModelScorer
         
         self.popSize = popSize
         self.keepTopFrac = keepTopFrac
@@ -155,7 +135,7 @@ class GeneticAlgorithm:
     def _scoreModelsInPop(self) -> None:
         for m in range(self.popSize):
             if self.population[m].fitness is None:
-                self.modelCrossValScorer.scoreModel(self.population[m])
+                self.modelScorer.scoreModel(self.population[m])
         return None
     
     def _getBestModel(self):
@@ -355,7 +335,7 @@ class GeneticAlgorithm:
 #     }
 
 
-# class ModelCrossValScorer:
+# class ModelScorer:
 #     '''
 #     Class to evaluate model accuracy given data and evaluation criteria
 #     -----
