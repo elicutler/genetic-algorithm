@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Dict, Any, Optional, Union
 
 import numpy as np
 
@@ -15,8 +15,6 @@ from sklearn.compose import ColumnTransformer
 from genetic_algorithm.utils.sklearn_custom_transformers import TargetMeanEncoder
 # from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
 # from sklearn.model_selection import TimeSeriesSplit, cross_val_score
-# from xgboost import XGBRegressor, XGBClassifier
-
 
 class PipelineMaker:
     def __init__(
@@ -34,8 +32,8 @@ class PipelineMaker:
     
     def makePipeline(
         self,
-        preprocessorChoices: list,
-        estimatorChoices: list
+        preprocessorChoices: Dict[str, Any],
+        estimatorChoices: Dict[str, Any]
     ) -> Pipeline:
         
         preprocessor = self._makePreprocessor(**preprocessorChoices)
@@ -84,7 +82,7 @@ class PipelineMaker:
         if catEncoderStrat == 'oneHot':
             catEncoder = OneHotEncoder(handle_unknown='ignore')
         elif catEncoderStrat == 'targetMean':
-            catEncoder = TargetMeanEncoder(prior_frac=tmePriorFrac)
+            catEncoder = TargetMeanEncoder(priorFrac=tmePriorFrac)
         return catEncoder
         
     def _makeEstimator(

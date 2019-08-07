@@ -3,6 +3,11 @@ from typing import Optional, Dict
 import numpy as np
 
 from sklearn.pipeline import Pipeline
+from sklearn.linear_model import ElasticNet, SGDClassifier
+from sklearn.ensemble import (
+    RandomForestRegressor, GradientBoostingRegressor,
+    RandomForestClassifier, GradientBoostingClassifier
+)
 
 from genetic_algorithm.utils.pipeline_maker import PipelineMaker
 
@@ -26,32 +31,24 @@ class ModelMaker:
     def __init__(
         self, 
         pipelineMaker: PipelineMaker,
-        estimatorType: str,
         preprocessorChoiceGridOverrides: Optional[Dict[str, list]] = None,
         estimatorChoiceGridOverrides: Optional[Dict[str, list]] = None,
     ):
         self.pipelineMaker = pipelineMaker
-        self.estimatorType = estimatorType
         self.preprocessorChoiceGridOverrides = preprocessorChoiceGridOverrides
         self.estimatorChoiceGridOverrides = estimatorChoiceGridOverrides
         
-        if self.estimatorType == 'gbm_regressor':
-            self.estimatorClass = GradientBoostingRegressor
+        if self.pipelineMaker.estimatorClass == GradientBoostingRegressor:
             self.estimatorChoiceGrid = self.gbmRegressorChoiceGrid
-        elif self.estimatorType == 'rf_regressor':
-            self.estimatorClass = RandomForestRegressor
+        elif self.pipelineMaker.estimatorClass == RandomForestRegressor:
             self.estimatorChoiceGrid = self.rfRegressorChoiceGrid
-        elif self.estimatorType == 'enet_regressor':
-            self.estimatorClass = ElasticNet
+        elif self.pipelineMaker.estimatorClass == ElasticNet:
             self.estimatorChoiceGrid = self.enetRegressorChoiceGrid
-        elif self.estimatorType == 'gbm_classifier':
-            self.estimatorClass = GradientBoostingClassifier
+        elif self.pipelineMaker.estimatorClass == GradientBoostingClassifier:
             self.estimatorChoiceGrid = self.gbmClassifierChoiceGrid
-        elif self.estimatorType == 'rf_classifier':
-            self.estimatorClass = RandomForestClassifier
+        elif self.pipelineMaker.estimatorClass == RandomForestClassifier:
             self.estimatorChoiceGrid = self.rfClassifierChoiceGrid
-        elif self.estimatorType == 'enet_classifier':
-            self.estimatorClass = SGDClassifier
+        elif self.pipelineMaker.estimatorClass == SGDClassifier:
             self.estimatorChoiceGrid = self.enetClassifierChoiceGrid
             
         if self.preprocessorChoiceGridOverrides is not None:
