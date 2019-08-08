@@ -20,22 +20,23 @@ class ModelScorer:
     '''
     def __init__(
         self,
-        estimator: Pipeline,
         X: np.array,
         y: np.array,
         evalMetric,
         crossValidator,
-        errorScore=np.nan
+        errorScore: Union[float, int, str] = np.nan
     ):
-        self.estimator = estimator
         self.X = X
         self.y = y
         self.scoring = scoring
         self.crossValidator = crossValidator
         self.evalMetric = evalMetric
-        return None
     
-    def scoreModel(self, aggregator: str = 'mean') -> float:
+    def scoreModel(
+        self, 
+        pipeline: Pipeline
+        aggregator: str = 'mean'
+    ) -> float:
         '''
         score model using scikit-learn's cross_val_score
         -----
@@ -45,7 +46,7 @@ class ModelScorer:
             model score (float)
         '''
         crossValScores = cross_val_score(
-            estimator=self.estimator, X=X, y=y, scoring=self.evalMetric,
+            estimator=pipeline, X=X, y=y, scoring=self.evalMetric,
             cv=self.crossValidator, error_score=self.errorScore
         )
         if aggregator == 'mean':
