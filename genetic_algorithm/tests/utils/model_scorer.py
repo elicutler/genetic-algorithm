@@ -6,18 +6,20 @@ from pprint import pprint
 
 import numpy as np
 import pandas as pd
+
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.model_selection import KFold
 
-X = pd.DataFrame({'g1': ['a', 'a', 'b', 'b'], 'g2': ['c', 'd', 'd', 'd']})
-y = pd.Series([1, 5, 7, 9])
+n = 100
+X = pd.DataFrame({'x1': np.random.normal(size=n)})
+y = pd.Series()
 
 pipelineMaker = PipelineMaker(
     estimatorClass=GradientBoostingRegressor,
     numFeatures=['x1', 'x2'], catFeatures=['g1', 'g2'],
     randomState=617
 )
-pipe = pipelineMaker.makePipeline(
+pipeline = pipelineMaker.makePipeline(
     preprocessorChoices={
         'numImputerStrat': 'median'
     },
@@ -30,6 +32,8 @@ evalMetric = 'mean_squared_error'
 crossValidator = KFold(n_splits=3, shuffle=True, random_state=617)
 
 modelScorer = ModelScorer(
-    X=X, y=y, evalMetric='mean_squared_error', 
+    X=X, y=y, evalMetric='neg_mean_squared_error', 
     crossValidator=crossValidator, errorScore=np.nan
 )
+
+modelScorer.scoreModel(pipeline=pipeline, aggregator='mean')

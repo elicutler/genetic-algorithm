@@ -1,6 +1,9 @@
+from typing import Union
+
 import numpy as np
 
 from sklearn.pipeline import Pipeline
+from sklearn.model_selection import cross_val_score
 
 from genetic_algorithm.utils.pipeline_maker import PipelineMaker
 
@@ -28,13 +31,13 @@ class ModelScorer:
     ):
         self.X = X
         self.y = y
-        self.scoring = scoring
-        self.crossValidator = crossValidator
         self.evalMetric = evalMetric
+        self.crossValidator = crossValidator
+        self.errorScore = errorScore
     
     def scoreModel(
         self, 
-        pipeline: Pipeline
+        pipeline: Pipeline,
         aggregator: str = 'mean'
     ) -> float:
         '''
@@ -46,7 +49,7 @@ class ModelScorer:
             model score (float)
         '''
         crossValScores = cross_val_score(
-            estimator=pipeline, X=X, y=y, scoring=self.evalMetric,
+            estimator=pipeline, X=self.X, y=self.y, scoring=self.evalMetric,
             cv=self.crossValidator, error_score=self.errorScore
         )
         if aggregator == 'mean':
