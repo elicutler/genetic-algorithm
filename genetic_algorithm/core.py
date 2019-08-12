@@ -1,5 +1,7 @@
 from typing import Optional
 
+import numpy as np
+
 from genetic_algorithm.utils.model_maker import ModelMaker
 from genetic_algorithm.utils.model_scorer import ModelScorer
 
@@ -36,10 +38,10 @@ class GeneticAlgorithm:
             :self.bestModel: best model after all iterations
             :self.graveYard: discarded models from previous generations (if kept)
         '''
-        assert keepTopFrac + keepBtmFrac + makeChildrenFrac <= 1        
+        assert keepTopFrac + keepBtmFrac + makeChildFrac <= 1        
         
         self.modelMaker = modelMaker
-        self.modelScorer = ModelScorer
+        self.modelScorer = modelScorer
         
         self.popSize = popSize
         self.keepTopFrac = keepTopFrac
@@ -55,12 +57,12 @@ class GeneticAlgorithm:
         self.mutateN = int(np.floor(self.mutateFrac * self.popSize))
         
         if self.keepGraveyard:
-            self.graveYard = []
+            self.graveyard = []
             
         self.population = []
         self.bestModel = None   
         
-        if self.randomSate is not None:
+        if self.randomState is not None:
             np.random.seed(self.randomState)
         return None
             
@@ -80,10 +82,13 @@ class GeneticAlgorithm:
             printCurrentBest: log best loss after each evolution round
         void
         '''
-        assert maxIters or maxItersNoImprov  # otherwise will run forever
+        assert maxIters is not None or maxItersNoImprov is not None  # otherwise will run forever
         
         if len(self.population) == 0:
             self._initializePop()
+            
+        iters = 0
+        itersNoImprov = 0
             
         stopCond = False
         if maxIters is not None and itersNoImprov is not None:
@@ -94,12 +99,8 @@ class GeneticAlgorithm:
             stopCond = itersNoImprov == maxItersNoImprov
         else:
             raise Exception('Invalid stopCond')
-            
-        iters = 0
-        itersNoImprov = 0
         
         while not stopCond:
-
             self._scoreModelsInPop()
             bestModel = self._getBestModel()
             
@@ -133,9 +134,11 @@ class GeneticAlgorithm:
         return None
         
     def _scoreModelsInPop(self) -> None:
-        for m in range(self.popSize):
+        for m in range(len(self.population)):
             if self.population[m].fitness is None:
-                self.modelScorer.scoreModel(self.population[m])
+                self.population[m].fitness = (
+                    self.modelScorer.scoreModel(self.population[m])
+                )
         return None
     
     def _getBestModel(self):
@@ -148,7 +151,7 @@ class GeneticAlgorithm:
 
         topKeepMods = [self.population.pop(i) for i in range(self.keepTopN)]
         btmKeepInds = np.random.choice(range(len(self.population)), size=self.keepBtmN)
-        btmKeepMods = [self.population.pop(i) for i in range(btmKeepInds)]
+        btmKeepMods = [self.population.pop(i) for i in btmKeepInds]
         
         if self.keepGraveyard:
             self.graveyard += self.population

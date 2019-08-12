@@ -42,6 +42,9 @@ class PipelineMaker:
             ('preprocessor', preprocessor),
             ('estimator', estimator)
         ])
+        pipeline.preprocessorChoices = preprocessorChoices
+        pipeline.estimatorChoices = estimatorChoices
+        pipeline.fitness = None
         return pipeline
     
     def _makePreprocessor(

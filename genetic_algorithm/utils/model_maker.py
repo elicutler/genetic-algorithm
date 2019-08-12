@@ -26,7 +26,7 @@ class ModelMaker:
         :makeRandomModel: Makes random model based on choice grids
         :makeChildModel: Makes model by randomly combining hyperparameters
                          of two models
-        :mutateModel: Mutate a model by randomly changing n of its hyperparameters
+        :mutateModel: Mutate a model by randomly changing one of its hyperparameters
     '''
     def __init__(
         self, 
@@ -78,29 +78,40 @@ class ModelMaker:
     
     def makeChildModel(self, mother, father):
         preprocessorChoices = {
-            param: np.random.choice(
-                *mother.preprocessorChoiceGrid[param],
-                *father.preprocessorChoiceGrid[param]
-            ) for param in self.preprocessorChoiceGrid.keys()
+            param: np.random.choice([
+                mother.preprocessorChoices[param],
+                father.preprocessorChoices[param]
+            ]) for param in self.preprocessorChoiceGrid.keys()
         }
         estimatorChoices = {
-            param: np.random.choice(
-                *mother.estimatorChoiceGrid[param],
-                *father.estimatorChoiceGrid[param]
-            ) for param in self.estimatorChoiceGrid.keys()
+            param: np.random.choice([
+                mother.estimatorChoices[param],
+                father.estimatorChoices[param]
+            ]) for param in self.estimatorChoiceGrid.keys()
         }
         childModel = self.pipelineMaker.makePipeline(
             preprocessorChoices, estimatorChoices
         )
         return childModel
     
-#     def _makeModel(
-#         self, preprocessorChoices: list, estimatorChoices: list
-#     ) -> sklearn.pipeline.Pipeline:
-#         pipeline = self.pipelineMaker.makePipeline(
-#             preprocesorChoices, estimatorChoices
-#         )
-#         return pipeline
+    def mutateModel(self, childModel: Pipeline) -> None:
+        
+        paramType = np.random.choice(['preprocessor', 'estimator'])
+        
+        if paramType == 'preprocessor':
+            params = childModel.preprocessorChoices
+            choiceGrid = self.preprocessorChoiceGrid
+        elif paramType == 'estimator':
+            params = childModel.estimatorChoices
+            choiceGrid = self.estimatorChoiceGrid
+            
+        paramToMutate = np.random.choice(params.keys())
+        paramValue = params[paramToMutate]
+        paramChoices = choiceGrid[paramToMutate]
+        breakpoint()
+        
+        
+        
         
     preprocessorChoiceGrid = {
         'numImputerStrat': ['mean', 'median'],
