@@ -149,13 +149,25 @@ class GeneticAlgorithm:
     def _killUnfit(self) -> None:
         self._sortPopByFitness()
 
-        topKeepMods = [self.population.pop(i) for i in range(self.keepTopN)]
-        btmKeepInds = np.random.choice(range(len(self.population)), size=self.keepBtmN)
-        btmKeepMods = [self.population.pop(i) for i in btmKeepInds]
+        topKeepInds = range(self.keepTopN)
+        topKeepMods = [self.population[i] for i in topKeepInds]
         
+        remainingInds = [i for i in range(len(self.population)) if i not in topKeepInds]
+        btmKeepInds = np.random.choice(
+            remainingInds, size=self.keepBtmN, replace=False
+        )
+        btmKeepMods = [self.population[i] for i in btmKeepInds]
+
+        assert len(set(topKeepInds).intersection(set(btmKeepInds))) == 0, (
+            'Cannot have overlap in top kept models and bottom kept models'
+        )
+        
+        keepMods = [*topKeepMods, *btmKeepMods]
+        unfitMods = [m for m in self.population if m not in keepMods]
+        
+        self.population = keepMods
         if self.keepGraveyard:
-            self.graveyard += self.population
-        self.population = [*topKeepMods, *btmKeepMods]
+            self.graveyard += unfitMods
         return None
         
     def _sortPopByFitness(self) -> None:

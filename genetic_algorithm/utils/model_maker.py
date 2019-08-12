@@ -105,13 +105,13 @@ class ModelMaker:
             params = childModel.estimatorChoices
             choiceGrid = self.estimatorChoiceGrid
             
-        paramToMutate = np.random.choice(params.keys())
-        paramValue = params[paramToMutate]
+        paramToMutate = np.random.choice([p for p in params.keys()])
         paramChoices = choiceGrid[paramToMutate]
-        breakpoint()
+        # possibility of new val == old val, i.e. no mutation
+        paramNewVal = np.random.choice(paramChoices) 
         
-        
-        
+        params[paramToMutate] = paramNewVal
+        return None
         
     preprocessorChoiceGrid = {
         'numImputerStrat': ['mean', 'median'],

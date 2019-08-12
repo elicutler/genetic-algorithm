@@ -67,3 +67,4 @@ geneticAlgorithm = GeneticAlgorithm(
     mutateFrac=mutateFrac, keepGraveyard=keepGraveyard, randomState=randomState
 )
 geneticAlgorithm.evolve(maxIters=4, maxItersNoImprov=None, printCurrentBest=True)
+
