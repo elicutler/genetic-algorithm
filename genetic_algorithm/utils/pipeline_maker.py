@@ -13,28 +13,49 @@ from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.compose import ColumnTransformer
 
 from genetic_algorithm.utils.sklearn_custom_transformers import TargetMeanEncoder
-# from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
-# from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 
 class PipelineMaker:
+    '''
+    Class for making scikit-learn pipelines with extra attributes for GeneticAlgorithm
+    -----
+    
+    params
+        estimatorClass -- scikit-learn ML estimator class
+        numFeatures -- numeric features for model
+        catFeatures -- categorical features for model
+        randomState -- seed for initializing estimator
+        
+    public methods
+        makePipeline -- make scikit-learn pipeline, with some extra attributes
+    '''
     def __init__(
         self,
-        estimatorClass,
-        numFeatures: List[str],
-        catFeatures: List[str],
-        randomState: Optional[int] = None
-    ):
+        estimatorClass:Any, # could be any number of sklearn classes
+        numFeatures:List[str],
+        catFeatures:List[str],
+        randomState:Optional[int]=None
+    ) -> None:
         self.estimatorClass = estimatorClass
         self.numFeatures = numFeatures
         self.catFeatures = catFeatures
         self.randomState = randomState
-        return None
     
     def makePipeline(
         self,
-        preprocessorChoices: Dict[str, Any],
-        estimatorChoices: Dict[str, Any]
+        preprocessorChoices:Dict[str, List[Any]],
+        estimatorChoices:Dict[str, List[Any]]
     ) -> Pipeline:
+        '''
+        Makes scikit-learn pipeline, with some extra attributes
+        -----
+        
+        params
+            preprocessorChoices -- choice grid for each preprocessor hyperparameter
+            estimatorChoices --choice grid for each estimator hyperparameter
+
+        returns
+            pipeline -- enhanced scikit-learn pipeline
+        '''
         
         preprocessor = self._makePreprocessor(**preprocessorChoices)
         estimator = self._makeEstimator(estimatorChoices)
@@ -49,10 +70,10 @@ class PipelineMaker:
     
     def _makePreprocessor(
         self, 
-        numImputerStrat: str = 'mean',
-        catEncoderStrat: str = 'oneHot',
-        missingValues: Union[float, str] = np.nan,
-        tmePriorFrac: Optional[float] = None
+        numImputerStrat:str='mean',
+        catEncoderStrat:str='oneHot',
+        missingValues:Union[float, str]=np.nan,
+        tmePriorFrac:Optional[float]=None
     ) -> FeatureUnion:
         
         catEncoder = self._getCatEncoder(catEncoderStrat)
@@ -78,8 +99,8 @@ class PipelineMaker:
         
     @staticmethod
     def _getCatEncoder(
-        catEncoderStrat: str, 
-        tmePriorFrac: Optional[float] = None
+        catEncoderStrat:str, 
+        tmePriorFrac:Optional[float]=None
     ) -> Union[OneHotEncoder, TargetMeanEncoder]:
         
         if catEncoderStrat == 'oneHot':
@@ -90,7 +111,7 @@ class PipelineMaker:
         
     def _makeEstimator(
         self, 
-        estimatorChoices: dict,
+        estimatorChoices:dict,
     ): # make conditional based on estimator class
         estimator = self.estimatorClass(
             **estimatorChoices, random_state=self.randomState

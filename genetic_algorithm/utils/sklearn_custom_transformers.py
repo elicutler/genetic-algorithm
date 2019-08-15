@@ -9,15 +9,16 @@ class TargetMeanEncoder(BaseEstimator, TransformerMixin):
     '''
     Target mean encoding data preprocessor compatible with scikit-learn pipelines
     -----
+    
     params
         :priorSize: 
     '''
     
     def __init__(
         self,
-        priorSize: Optional[int] = None, 
-        priorFrac: Optional[float] = None
-    ):
+        priorSize:Optional[int]=None, 
+        priorFrac:Optional[float]=None
+    ) -> None:
         assert not (priorSize is not None and priorFrac is not None)
         
         self.priorSize = priorSize
@@ -25,8 +26,8 @@ class TargetMeanEncoder(BaseEstimator, TransformerMixin):
         
     def fit(
         self, 
-        X: Union[pd.DataFrame, np.array], 
-        y: Union[pd.Series, np.array]
+        X:Union[pd.DataFrame, np.array], 
+        y:Union[pd.Series, np.array]
     ) -> 'TargetMeanEncoder':
         
         X = X.values if isinstance(X, pd.DataFrame) else X  
@@ -81,10 +82,10 @@ class TargetMeanEncoder(BaseEstimator, TransformerMixin):
             self.levelMeansSmoothed = levelMeansSmoothed
             
         self.levelMeans = levelMeans
-        self.grandMean = grandMean                
+        self.grandMean = grandMean 
         return self
         
-    def transform(self, X: np.array) -> np.array:
+    def transform(self, X:np.array) -> np.array:
         
         X = X.values if isinstance(X, pd.DataFrame) else X
         XTransformed = np.empty_like(X).astype(float)

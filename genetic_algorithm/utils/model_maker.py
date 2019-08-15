@@ -13,106 +13,27 @@ from genetic_algorithm.utils.pipeline_maker import PipelineMaker
 
 class ModelMaker:
     '''
-    Class to make scikit-learn pipeline models
+    Class to make scikit-learn pipeline models for GeneticAlgorithm
     -----
+    
     params
-        :pipelineMaker: scikit-learn pipeline maker
-        :estimatorType: supervised estimator (maps to scikit-learn estimator class)
-        :preprocessorChoiceGridOverrides: optional preprocessor choice grids 
-                                          to override defaults
-        :estimatorChoiceGridOverrides: optional estimator choice grids 
-                                       to override defaults
+        pipelineMaker -- scikit-learn pipeline maker
+        estimatorType -- supervised estimator (maps to scikit-learn estimator class)
+        preprocessorChoiceGridOverrides -- optional preprocessor choice grids 
+            to override defaults
+        estimatorChoiceGridOverrides -- optional estimator choice grids 
+            to override defaults
+            
     public methods
-        :makeRandomModel: Makes random model based on choice grids
-        :makeChildModel: Makes model by randomly combining hyperparameters
-                         of two models
-        :mutateModel: Mutate a model by randomly changing one of its hyperparameters
+        makeRandomModel -- Makes random model based on choice grids
+        makeChildModel -- Makes model by randomly combining hyperparameters
+            of two models
+        mutateModel -- Mutate a model by randomly changing one of its hyperparameters
+        
+    public attributes
+        None
     '''
-    def __init__(
-        self, 
-        pipelineMaker: PipelineMaker,
-        preprocessorChoiceGridOverrides: Optional[Dict[str, list]] = None,
-        estimatorChoiceGridOverrides: Optional[Dict[str, list]] = None,
-    ):
-        self.pipelineMaker = pipelineMaker
-        self.preprocessorChoiceGridOverrides = preprocessorChoiceGridOverrides
-        self.estimatorChoiceGridOverrides = estimatorChoiceGridOverrides
-        
-        if self.pipelineMaker.estimatorClass == GradientBoostingRegressor:
-            self.estimatorChoiceGrid = self.gbmRegressorChoiceGrid
-        elif self.pipelineMaker.estimatorClass == RandomForestRegressor:
-            self.estimatorChoiceGrid = self.rfRegressorChoiceGrid
-        elif self.pipelineMaker.estimatorClass == ElasticNet:
-            self.estimatorChoiceGrid = self.enetRegressorChoiceGrid
-        elif self.pipelineMaker.estimatorClass == GradientBoostingClassifier:
-            self.estimatorChoiceGrid = self.gbmClassifierChoiceGrid
-        elif self.pipelineMaker.estimatorClass == RandomForestClassifier:
-            self.estimatorChoiceGrid = self.rfClassifierChoiceGrid
-        elif self.pipelineMaker.estimatorClass == SGDClassifier:
-            self.estimatorChoiceGrid = self.enetClassifierChoiceGrid
-            
-        if self.preprocessorChoiceGridOverrides is not None:
-            self.preprocessorChoiceGrid = {
-                **self.preprocessorChoiceGrid, 
-                **self.preprocessorChoiceGridOverrides
-            }
-        if self.estimatorChoiceGridOverrides is not None:
-            self.estimatorChoiceGrid = {
-                **self.estimatorChoiceGrid,
-                **self.estimatorChoiceGridOverrides
-            }
     
-    def makeRandomModel(self):
-        preprocessorChoices = {
-            param: np.random.choice(self.preprocessorChoiceGrid[param])
-            for param in self.preprocessorChoiceGrid.keys()
-        }
-        estimatorChoices = {
-            param: np.random.choice(self.estimatorChoiceGrid[param])
-            for param in self.estimatorChoiceGrid.keys()
-        }
-        randomModel = self.pipelineMaker.makePipeline(
-            preprocessorChoices, estimatorChoices
-        )
-        return randomModel
-    
-    def makeChildModel(self, mother, father):
-        preprocessorChoices = {
-            param: np.random.choice([
-                mother.preprocessorChoices[param],
-                father.preprocessorChoices[param]
-            ]) for param in self.preprocessorChoiceGrid.keys()
-        }
-        estimatorChoices = {
-            param: np.random.choice([
-                mother.estimatorChoices[param],
-                father.estimatorChoices[param]
-            ]) for param in self.estimatorChoiceGrid.keys()
-        }
-        childModel = self.pipelineMaker.makePipeline(
-            preprocessorChoices, estimatorChoices
-        )
-        return childModel
-    
-    def mutateModel(self, childModel: Pipeline) -> None:
-        
-        paramType = np.random.choice(['preprocessor', 'estimator'])
-        
-        if paramType == 'preprocessor':
-            params = childModel.preprocessorChoices
-            choiceGrid = self.preprocessorChoiceGrid
-        elif paramType == 'estimator':
-            params = childModel.estimatorChoices
-            choiceGrid = self.estimatorChoiceGrid
-            
-        paramToMutate = np.random.choice([p for p in params.keys()])
-        paramChoices = choiceGrid[paramToMutate]
-        # possibility of new val == old val, i.e. no mutation
-        paramNewVal = np.random.choice(paramChoices) 
-        
-        params[paramToMutate] = paramNewVal
-        return None
-        
     preprocessorChoiceGrid = {
         'numImputerStrat': ['mean', 'median'],
         'catEncoderStrat': ['oneHot', 'targetMean'],
@@ -169,3 +90,88 @@ class ModelMaker:
         ),
         'penalty': ['elastic_net']
     }
+
+    def __init__(
+        self, 
+        pipelineMaker:PipelineMaker,
+        preprocessorChoiceGridOverrides:Optional[Dict[str, list]]=None,
+        estimatorChoiceGridOverrides:Optional[Dict[str, list]]=None,
+    ):
+        self.pipelineMaker = pipelineMaker
+        self.preprocessorChoiceGridOverrides = preprocessorChoiceGridOverrides
+        self.estimatorChoiceGridOverrides = estimatorChoiceGridOverrides
+        
+        if self.pipelineMaker.estimatorClass == GradientBoostingRegressor:
+            self.estimatorChoiceGrid = self.gbmRegressorChoiceGrid
+        elif self.pipelineMaker.estimatorClass == RandomForestRegressor:
+            self.estimatorChoiceGrid = self.rfRegressorChoiceGrid
+        elif self.pipelineMaker.estimatorClass == ElasticNet:
+            self.estimatorChoiceGrid = self.enetRegressorChoiceGrid
+        elif self.pipelineMaker.estimatorClass == GradientBoostingClassifier:
+            self.estimatorChoiceGrid = self.gbmClassifierChoiceGrid
+        elif self.pipelineMaker.estimatorClass == RandomForestClassifier:
+            self.estimatorChoiceGrid = self.rfClassifierChoiceGrid
+        elif self.pipelineMaker.estimatorClass == SGDClassifier:
+            self.estimatorChoiceGrid = self.enetClassifierChoiceGrid
+            
+        if self.preprocessorChoiceGridOverrides is not None:
+            self.preprocessorChoiceGrid = {
+                **self.preprocessorChoiceGrid, 
+                **self.preprocessorChoiceGridOverrides
+            }
+        if self.estimatorChoiceGridOverrides is not None:
+            self.estimatorChoiceGrid = {
+                **self.estimatorChoiceGrid,
+                **self.estimatorChoiceGridOverrides
+            }
+    
+    def makeRandomModel(self) -> Pipeline:
+        preprocessorChoices = {
+            param: np.random.choice(self.preprocessorChoiceGrid[param])
+            for param in self.preprocessorChoiceGrid.keys()
+        }
+        estimatorChoices = {
+            param: np.random.choice(self.estimatorChoiceGrid[param])
+            for param in self.estimatorChoiceGrid.keys()
+        }
+        randomModel = self.pipelineMaker.makePipeline(
+            preprocessorChoices, estimatorChoices
+        )
+        return randomModel
+    
+    def makeChildModel(self, mother:Pipeline, father:Pipeline) -> Pipeline:
+        preprocessorChoices = {
+            param: np.random.choice([
+                mother.preprocessorChoices[param],
+                father.preprocessorChoices[param]
+            ]) for param in self.preprocessorChoiceGrid.keys()
+        }
+        estimatorChoices = {
+            param: np.random.choice([
+                mother.estimatorChoices[param],
+                father.estimatorChoices[param]
+            ]) for param in self.estimatorChoiceGrid.keys()
+        }
+        childModel = self.pipelineMaker.makePipeline(
+            preprocessorChoices, estimatorChoices
+        )
+        return childModel
+    
+    def mutateModel(self, childModel:Pipeline) -> None:
+        
+        paramType = np.random.choice(['preprocessor', 'estimator'])
+        
+        if paramType == 'preprocessor':
+            params = childModel.preprocessorChoices
+            choiceGrid = self.preprocessorChoiceGrid
+        elif paramType == 'estimator':
+            params = childModel.estimatorChoices
+            choiceGrid = self.estimatorChoiceGrid
+            
+        paramToMutate = np.random.choice([p for p in params.keys()])
+        paramChoices = choiceGrid[paramToMutate]
+        # possibility of new val == old val, i.e. no mutation
+        paramNewVal = np.random.choice(paramChoices) 
+        
+        params[paramToMutate] = paramNewVal
+        

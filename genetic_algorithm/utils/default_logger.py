@@ -1,32 +1,37 @@
 import logging
 
 class DefaultLogger:
+    '''
+    Set up root logger with customizable default stream and file handlers
+    -----
+    
+    params
+        logFileName -- name of file to log output to
+        level -- logging level for root logger and handlers
+        defaultFormatterOverride -- optional logging formatter to override default
+        setDefaultStreamHandler -- whether to set default stream handler 
+        setDefaultFileHandler -- whether to set default file handler
+        
+    public methods
+        none
+        
+    public attributes
+        self.logger -- root logger, set with defaults
+    '''
+    
     defaultFormatter = logging.Formatter(
         '[%(asctime)s] %(levelname)s [%(module)s:%(lineno)s] - %(message)s',
         datefmt="%Y-%m-%d %H:%M"
     )
-    '''
-    Set up root logger with customizable default stream and file handlers
-    -----
-    params
-        logFileName: name of file to log output to
-        level: logging level for root logger and handlers
-        defaultFormatterOverride: optional logging formatter to override default
-        setDefaultStreamHandler: whether to set default stream handler 
-        setDefaultFileHandler: whether to set default file handler
-    public methods
-        none
-    public attributes
-        :self.logger: root logger, set with defaults
-    '''
+    
     def __init__(
         self, 
-        logFileName: str, 
-        level: int = logging.INFO, 
-        defaultFormatterOverride: logging.Formatter = None,
-        setDefaultStreamHandler: bool = True, 
-        setDefaultFileHandler: bool = True,
-        defaultFileHandlerMode: str = 'w'
+        logFileName:str, 
+        level:int=logging.INFO, 
+        defaultFormatterOverride:logging.Formatter=None,
+        setDefaultStreamHandler:bool=True, 
+        setDefaultFileHandler:bool=True,
+        defaultFileHandlerMode:str='w'
     ) -> None:
         self.logFileName = logFileName
         self.level = level
@@ -47,7 +52,6 @@ class DefaultLogger:
         if self.setDefaultFileHandler:
             fileHandler = self._setDefaultHandler(type_='file')
             self.logger.addHandler(fileHandler)
-        return None
             
     def _setFormatter(self) -> logging.Formatter:
         if self.defaultFormatterOverride is None:
@@ -56,7 +60,7 @@ class DefaultLogger:
             formatter = self.defaultFormatterOverride
         return formatter
     
-    def _setDefaultHandler(self, type_: str) -> logging.Handler:
+    def _setDefaultHandler(self, type_:str) -> logging.Handler:
         if type_ == 'stream':
             handler = self._setDefaultStreamHandler()
         elif type_ == 'file':
@@ -71,11 +75,11 @@ class DefaultLogger:
     
     def _setDefaultFileHandler(self) -> logging.FileHandler:
         fileHandler = logging.FileHandler(
-            self.logFileName, self.defaultFileHandlerMode
+            self.logFileName.strip('.py') + '.log', 
+            self.defaultFileHandlerMode
         )
         return fileHandler
     
-    def _setHandlerDefaults(self, handler: logging.Handler) -> None:
+    def _setHandlerDefaults(self, handler:logging.Handler) -> None:
         handler.setLevel(self.level)
-        handler.setFormatter(self.formatter)
-        return None    
+        handler.setFormatter(self.formatter)   

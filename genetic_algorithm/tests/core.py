@@ -2,6 +2,7 @@ from genetic_algorithm.core import GeneticAlgorithm
 from genetic_algorithm.utils.model_maker import ModelMaker
 from genetic_algorithm.utils.model_scorer import ModelScorer
 from genetic_algorithm.utils.pipeline_maker import PipelineMaker
+from genetic_algorithm.utils.default_logger import DefaultLogger
 
 from pprint import pprint
 
@@ -11,6 +12,8 @@ import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.model_selection import KFold
 
+defaultLogger = DefaultLogger(__name__)
+
 n = 100
 X = pd.DataFrame({
     'x1': np.random.normal(size=n), 
@@ -18,7 +21,7 @@ X = pd.DataFrame({
 })
 y = pd.Series(
     0.5 + 0.5*X['x1'] + 1.0*(X['g1'] == 'b') + 1.5*(X['g1'] == 'c') 
-    + np.random.normal(size=n)
+#     + np.random.normal(size=n)
 )
 
 pipelineMaker = PipelineMaker(
@@ -66,5 +69,5 @@ geneticAlgorithm = GeneticAlgorithm(
     keepTopFrac=keepTopFrac, keepBtmFrac=keepBtmFrac, makeChildFrac=makeChildFrac,
     mutateFrac=mutateFrac, keepGraveyard=keepGraveyard, randomState=randomState
 )
-geneticAlgorithm.evolve(maxIters=4, maxItersNoImprov=None, printCurrentBest=True)
+geneticAlgorithm.evolve(maxIters=4, maxItersNoImprov=None, logCurrentBest=True)
 
