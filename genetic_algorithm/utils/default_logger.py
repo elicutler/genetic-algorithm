@@ -16,7 +16,7 @@ class DefaultLogger:
         none
         
     public attributes
-        self.logger -- root logger, set with defaults
+        logger -- root logger, set with defaults
     '''
     
     defaultFormatter = logging.Formatter(

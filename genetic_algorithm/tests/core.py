@@ -4,6 +4,8 @@ from genetic_algorithm.utils.model_scorer import ModelScorer
 from genetic_algorithm.utils.pipeline_maker import PipelineMaker
 from genetic_algorithm.utils.default_logger import DefaultLogger
 
+import logging
+
 from pprint import pprint
 
 import numpy as np
@@ -71,3 +73,4 @@ geneticAlgorithm = GeneticAlgorithm(
 )
 geneticAlgorithm.evolve(maxIters=4, maxItersNoImprov=None, logCurrentBest=True)
 
+logging.info('All tests passed')
