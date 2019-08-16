@@ -1,4 +1,5 @@
 setup.py
+genetic_algorithm/__core.py
 genetic_algorithm/__init__.py
 genetic_algorithm/core.py
 genetic_algorithm.egg-info/PKG-INFO
@@ -8,4 +9,8 @@ genetic_algorithm.egg-info/not-zip-safe
 genetic_algorithm.egg-info/requires.txt
 genetic_algorithm.egg-info/top_level.txt
 genetic_algorithm/utils/__init__.py
+genetic_algorithm/utils/default_logger.py
+genetic_algorithm/utils/model_maker.py
+genetic_algorithm/utils/model_scorer.py
+genetic_algorithm/utils/pipeline_maker.py
 genetic_algorithm/utils/sklearn_custom_transformers.py

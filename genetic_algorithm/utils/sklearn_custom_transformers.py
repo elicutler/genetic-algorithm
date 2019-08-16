@@ -1,26 +1,59 @@
-'''
-Contains custom transformers for scikit-learn
-'''
-
-# Imports ==========
+from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
-# Create target mean encoder ==========
-
 class TargetMeanEncoder(BaseEstimator, TransformerMixin):
+    '''
+    Target mean encoding data preprocessor compatible with scikit-learn pipelines.
+    Supports continuous outcomes (including binary outcomes converted to 0/1). 
+    Does not support multi-class outcomes.
+    -----
     
-    def __init__(self, prior_size=0, prior_frac=0):
+    params
+        priorSize -- regularize level-specific outcome means against grand mean
+            by supplying a fixed number of observations for the grand mean weight
+        priorFrac -- regularize level-specific outcome means against grand mean
+            by supplying a fraction of observations that gets converted to a 
+            fixed number of observations for the grand mean weight
+    
+    public methods
+        fit -- for scikit-learn processing
+        transform -- for scikit-learn processing
         
-        assert not (prior_size > 0 and prior_frac > 0)
+    public attributes
+        none
+    '''
+    
+    def __init__(
+        self,
+        priorSize:Optional[int]=None, 
+        priorFrac:Optional[float]=None
+    ) -> None:
+        assert not (priorSize is not None and priorFrac is not None)
         
-        self.prior_size = prior_size
-        self.prior_frac = prior_frac
+        self.priorSize = priorSize
+        self.priorFrac = priorFrac
         
-    def fit(self, X, y):
+    def fit(
+        self, 
+        X:Union[pd.DataFrame, np.array], 
+        y:Union[pd.Series, np.array]
+    ) -> 'TargetMeanEncoder':
+        '''
+        Estimate target means for each level of each categorical
+        feature (optionally regularized)
+        -----
+        
+        params
+            X -- feature array for estimating target means by feature level
+            y -- target array for estimating target means by feature level
+            
+        returns
+            self
+        '''
         
         X = X.values if isinstance(X, pd.DataFrame) else X  
 
@@ -29,70 +62,80 @@ class TargetMeanEncoder(BaseEstimator, TransformerMixin):
         elif np.ndim(y) == 1:
             y = y.reshape(y.shape[0], 1)
 
-        data_arr = np.concatenate((X, y), axis=1)
+        dataArr = np.concatenate((X, y), axis=1)
         
-        grand_mean = np.mean(y)
+        grandMean = np.mean(y)
         
-        lvl_means  = {col: {} for col in range(X.shape[1])}
-        lvl_counts = {col: {} for col in range(X.shape[1])}
+        levelMeans = {j: {} for j in range(X.shape[1])}
+        levelCounts = {j: {} for j in range(X.shape[1])}
 
-        for col in lvl_means.keys():
-            for lvl in np.unique(X[:, col]):
+        for j in levelMeans.keys():
+            for g in np.unique(X[:, j]):
 
-                X_col_lvl = data_arr[:, col] == lvl
-                y_col     = data_arr.shape[1] - 1   
+                X_jg = dataArr[:, j] == g
+                y_j = dataArr.shape[1] - 1   
+                X_jg_y = dataArr[X_jg, y_j].astype(float)
                 
-                X_col_lvl_y_numeric = data_arr[X_col_lvl, y_col].astype(float)
-                
-                lvl_means[col][lvl]  = (
-                    np.mean(X_col_lvl_y_numeric) 
-                    if not np.isnan(np.mean(X_col_lvl_y_numeric))
-                    else grand_mean
+                levelMeans[j][g] = (
+                    np.mean(X_jg_y) 
+                    if not np.isnan(np.mean(X_jg_y))
+                    else grandMean
                 )
+                levelCounts[j][g] = dataArr[X_jg].shape[0]
                 
-                lvl_counts[col][lvl] = data_arr[X_col_lvl].shape[0]
-                
-        self.lvl_means = lvl_means
-                
-        if self.prior_size or self.prior_frac:
+        if self.priorSize is not None or self.priorFrac is not None:
             
-            lvl_means_smoothed = {col: {} for col in range(X.shape[1])}
+            levelMeansSmoothed = {j: {} for j in range(X.shape[1])}
             
-            for col in lvl_means.keys():
-                for lvl in lvl_means[col].keys():
+            for j in levelMeans.keys():
+                for g in levelMeans[j].keys():
                     
-                    if self.prior_size:
-                        smooth_wt = self.prior_size / (self.prior_size + lvl_counts[col][lvl])
-                    elif self.prior_frac:
-                        prior_size = X.shape[0]*self.prior_frac
-                        smooth_wt  = prior_size / (prior_size + lvl_counts[col][lvl])
+                    if self.priorSize is not None:
+                        weightSmoothed = self.priorSize / (self.priorSize + levelCounts[j][g])
+                    elif self.priorFrac is not None:
+                        priorSize = X.shape[0]*self.priorFrac
+                        weightSmoothed = priorSize / (priorSize + levelCounts[j][g])
                         
-                    lvl_means_smoothed[col][lvl] = (
-                        (1 - smooth_wt)*lvl_means[col][lvl] + smooth_wt*grand_mean
-                        if not np.isnan((1 - smooth_wt)*lvl_means[col][lvl] + smooth_wt*grand_mean)
-                        else grand_mean
-                    )
-                        
-            self.lvl_means_smoothed = lvl_means_smoothed
-            self.grand_mean = grand_mean
-                
+                    levelMeansSmoothed_jg = (
+                        (1 - weightSmoothed)*levelMeans[j][g] + weightSmoothed*grandMean
+                    )                        
+                    levelMeansSmoothed[j][g] = (
+                        levelMeansSmoothed_jg
+                        if not np.isnan(levelMeansSmoothed_jg)
+                        else grandMean
+                    )     
+            self.levelMeansSmoothed = levelMeansSmoothed
+            
+        self.levelMeans = levelMeans
+        self.grandMean = grandMean 
         return self
         
-    def transform(self, X):
+    def transform(self, X:np.array) -> np.array:
+        '''
+        Get target means for each level of each categorical feature
+        (optionally regularized)
+        -----
+        
+        params:
+            X -- feature array for which to apply target means
+            
+        returns
+            XTransformed -- array of target means
+        '''
         
         X = X.values if isinstance(X, pd.DataFrame) else X
-        X_transformed = np.empty_like(X).astype(float)
+        XTransformed = np.empty_like(X).astype(float)
         
-        for col in range(X_transformed.shape[1]):
+        for j in range(XTransformed.shape[1]):
             
-            if self.prior_size or self.prior_frac:
-                means_getter = np.vectorize(self.lvl_means_smoothed[col].get)
+            if self.priorSize is not None or self.priorFrac is not None:
+                meansGetter = np.vectorize(self.levelMeansSmoothed[j].get)
             else:
-                means_getter = np.vectorize(self.lvl_means[col].get)
+                meansGetter = np.vectorize(self.levelMeans[j].get)
                 
-            X_transformed[:, col] = means_getter(X[:, col])
+            XTransformed[:, j] = meansGetter(X[:, j])
             
             # imputes for levels in validation set not seen in training set
-            X_transformed[np.isnan(X_transformed[:, col]), col] = self.grand_mean
+            XTransformed[np.isnan(XTransformed[:, j]), j] = self.grandMean
                 
-        return X_transformed
+        return XTransformed

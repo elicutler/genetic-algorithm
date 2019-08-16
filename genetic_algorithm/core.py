@@ -1,363 +1,212 @@
-'''
-Genetic algorithm for ML hyperparameter tuning
-'''
-
-# Imports ==========
+from typing import Optional
+import logging
 
 import numpy as np
+from sklearn.pipeline import Pipeline
 
-from sklearn.impute import SimpleImputer, MissingIndicator
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.linear_model import ElasticNet, SGDClassifier
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor  
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.compose import ColumnTransformer
-from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
-from sklearn.model_selection import TimeSeriesSplit, cross_val_score
-from xgboost import XGBRegressor, XGBClassifier
-
-from genetic_algorithm.utils.sklearn_custom_transformers import TargetMeanEncoder
-
-# Pipeline building blocks ==========
-
-class PipelineMaker:
-    
-    def __init__(self, estimator_type, num_features, cat_features, random_state=None):
-        
-        self.estimator_type = estimator_type
-        self.num_features = num_features
-        self.cat_features = cat_features
-        self.random_state = random_state
-        
-    def _make_preprocessor(
-        self, num_impute_strat, cat_encoder_strat, missing_values, prior_frac
-    ):           
-        if cat_encoder_strat == 'one_hot':
-            cat_encoder = OneHotEncoder(handle_unknown='ignore')
-        elif cat_encoder_strat == 'target_mean':
-            cat_encoder = TargetMeanEncoder(prior_frac=prior_frac)  
-            
-        num_pipe = Pipeline([
-            ('num_imputer', SimpleImputer(strategy=num_impute_strat)),
-            ('num_normalizer', StandardScaler())
-        ])         
-        cat_pipe = Pipeline([
-            ('cat_imputer', SimpleImputer(strategy='most_frequent')),
-            ('cat_encoder', cat_encoder)
-        ])        
-        num_cat_pipe = ColumnTransformer([
-            ('num_pipe', num_pipe, self.num_features),
-            ('cat_pipe', cat_pipe, self.cat_features)
-        ])        
-        preprocessor = FeatureUnion([
-            ('num_cat_pipe', num_cat_pipe),
-            ('missing_flagger', MissingIndicator(missing_values=missing_values, features='all'))
-        ])    
-        return preprocessor
-    
-    def make_pipeline(self, preprocessor_choices, estimator_choices):
-        
-        preprocessor = self._make_preprocessor(**preprocessor_choices)
-        
-        if self.estimator_type == 'gbm_regressor':
-            estimator = GradientBoostingRegressor(random_state=self.random_state, **estimator_choices)
-        elif self.estimator_type == 'gbm_classifier':
-            estimator = GradientBoostingClassifier(random_state=self.random_state, **estimator_choices)
-            
-        elif self.estimator_type == 'rf_regressor':
-            estimator = RandomForestRegressor(random_state=self.random_state, **estimator_choices)
-        elif self.estimator_type == 'rf_classifier':
-            estimator = RandomForestClassifier(random_state=self.random_state, **estimator_choices)
-            
-        elif self.estimator_type == 'enet_regressor':
-            estimator = ElasticNet(random_state=self.random_state, **estimator_choices)
-        elif self.estimator_type == 'enet_classifier':
-            estimator = SGDClassifier(random_state=self.random_state, **estimator_choices)
-            
-        pipeline = Pipeline([
-            ('preprocessor', preprocessor),
-            ('estimator', estimator)
-        ])
-        return pipeline
-                
-class IndivMaker:
-    
-    def __init__(
-        self, estimator_type, data_frame, target, num_features, cat_features,  
-        cv_strat, n_splits, eval_criterion, random_state=None
-    ):
-        self.estimator_type = estimator_type
-        self.data_frame = data_frame
-        self.target = target
-        self.num_features = num_features
-        self.cat_features = cat_features
-        self.cv_strat = cv_strat
-        self.n_splits = n_splits
-        self.eval_criterion = eval_criterion
-        self.random_state = random_state
-        
-        self.pipelineMaker = PipelineMaker(
-            estimator_type=self.estimator_type, num_features=self.num_features, 
-            cat_features=self.cat_features, random_state=self.random_state
-        )
-        self.preprocessor_choice_grid = {
-            'num_impute_strat': ['mean', 'median'],
-            'cat_encoder_strat': ['one_hot', 'target_mean'],
-            'missing_values': [np.nan, 'DO_NOT_FLAG_MISSING'],
-            'prior_frac': np.linspace(0.01, 1, num=100)
-        }
-        
-        if self.estimator_type == 'gbm_regressor':
-            self.estimator_choice_grid = {
-                'loss': ['ls', 'lad'],
-                'n_estimators': np.arange(100, 1000, 100),
-                'subsample': np.linspace(0.1, 1, num=10),
-                'min_samples_leaf': np.arange(1, 10),
-                'max_depth': np.arange(1, 12),
-                'min_impurity_decrease': np.linspace(0, 1, num=10)
-            }
-        elif self.estimator_type == 'gbm_classifier':
-            self.estimator_choice_grid = {
-                'learning_rate': np.linspace(0.01, 1, num=100),
-                'n_estimators': np.arange(100, 1000, 100),
-                'subsample': np.linspace(0.1, 1, num=10),
-                'min_samples_leaf': np.arange(2, 10),
-                'max_depth': np.arange(1, 12),
-                'min_impurity_decrease': np.linspace(0, 1, num=10)        
-            }
-            
-        elif self.estimator_type == 'rf_regressor':
-            self.estimator_choice_grid = {
-                'criterion': ['mse', 'mae'],
-                'max_features': ['sqrt', 'log2', None],
-                'n_estimators': np.arange(100, 1000, 100)
-            }
-        elif self.estimator_type == 'rf_classifier':
-            self.estimator_choice_grid = {
-                'criterion': ['gini', 'entropy'],
-                'max_features': ['sqrt', 'log2', None],
-                'n_estimators': np.arange(100, 1000, 100)
-            }
-        
-        elif self.estimator_type == 'enet_regressor':
-            self.estimator_choice_grid = {
-                'alpha': np.linspace(0.01, 1, num=100), # sklearn advises against including very small alpha values
-                'l1_ratio': np.concatenate([np.logspace(-3, -1, num=4), np.linspace(0, 1, num=100)])
-            }
-        elif self.estimator_type == 'enet_classifier':
-            self.estimator_choice_grid = {
-                'loss': ['hinge', 'log'],
-                'alpha': np.concatenate([np.logspace(-4, -2, num=3), np.linspace(0.1, 1, num=100)]),
-                'l1_ratio': np.concatenate([np.logspace(-4, -1, num=4), np.linspace(0, 1, num=100)]),
-                'learning_rate': ['constant', 'optimal', 'invscaling', 'adaptive'],
-                'eta0': np.concatenate([np.logspace(-4, -2, num=3), np.linspace(0.1, 1, num=100)]),
-                'power_t': np.concatenate([np.logspace(-4, -2, num=3), np.linspace(0.1, 1, num=100)]),
-                'penalty': ['elastic_net']
-            }
-            
-        if self.cv_strat == 'KFold':
-            self.cv = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
-        elif self.cv == 'StratifiedKFold':
-            self.cv = StratifiedKfold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
-        elif self.cv == 'TimeSeriesSplit':
-            self.cv = TimeSeriesSplit(n_splits=self.n_splits)        
-            
-    def _make_indiv(self, preprocessor_choice_grid, estimator_choice_grid):
-        preprocessor_choices = {
-            param: np.random.choice(preprocessor_choice_grid[param])
-            for param in preprocessor_choice_grid.keys()
-        }
-        estimator_choices = {
-            param: np.random.choice(estimator_choice_grid[param])
-            for param in estimator_choice_grid.keys()
-        }
-        pipe = self.pipelineMaker.make_pipeline(
-            preprocessor_choices=preprocessor_choices, estimator_choices=estimator_choices
-        )
-        indiv = {
-            'preprocessor_choices': preprocessor_choices,
-            'estimator_choices': estimator_choices,
-            'pipe': pipe
-        }
-        return indiv
-    
-    def make_random_indiv(self):
-        indiv = self._make_indiv(
-            preprocessor_choice_grid=self.preprocessor_choice_grid,
-            estimator_choice_grid=self.estimator_choice_grid
-        )
-        return indiv
-    
-    def make_child_indiv(self, mother, father):
-        preprocessor_choice_grid = {
-            param: [
-                mother['preprocessor_choices'][param], 
-                father['preprocessor_choices'][param]
-            ]
-            for param in mother['preprocessor_choices'].keys()
-        }
-        estimator_choice_grid = {
-            param: [
-                mother['estimator_choices'][param],
-                father['estimator_choices'][param]
-            ]
-            for param in mother['estimator_choices'].keys()
-        }
-        indiv = self._make_indiv(
-            preprocessor_choice_grid=preprocessor_choice_grid,
-            estimator_choice_grid=estimator_choice_grid
-        )
-        return indiv
-    
-    def mutate_indiv(self, indiv):        
-        preprocessor_gene = np.random.choice(list(self.preprocessor_choice_grid.keys()))
-        preprocessor_mutation = np.random.choice(self.preprocessor_choice_grid[preprocessor_gene])
-        indiv['preprocessor_choices'][preprocessor_gene] = preprocessor_mutation
-        
-        estimator_gene = np.random.choice(list(self.estimator_choice_grid.keys()))
-        estimator_mutation = np.random.choice(self.estimator_choice_grid[estimator_gene])
-        indiv['estimator_choices'][estimator_gene] = estimator_mutation
-        
-        return None
-    
-    def assess_indiv_fitness(self, indiv):
-        pipe = indiv['pipe']
-        X = self.data_frame[[*self.num_features, *self.cat_features]]
-        y = np.ravel(self.data_frame[self.target]) # RandomForest raises warning if not passed 1D array
-        cv_scores = cross_val_score(
-            estimator=pipe, X=X, y=y, scoring=self.eval_criterion, cv=self.cv, error_score=np.nan
-        )
-        indiv['fitness'] = cv_scores.mean() if not np.isnan(cv_scores.mean()) else np.NINF
-        return None
-        
-
-# Genetic algorithm ==========
+from genetic_algorithm.utils.model_maker import ModelMaker
+from genetic_algorithm.utils.model_scorer import ModelScorer
 
 class GeneticAlgorithm:
+    '''
+    Genetic algorithm for scikit-learn model hyperparameter tuning 
+    -----
     
+    params
+        modelMaker -- instance of class ModelMaker
+        modelScorer -- instance of class ModelScorer
+        popSize -- number of models in a generation
+        keepTopFrac -- fraction of models in a generation to keep from top performers
+        keepBtmFrac -- fraction of models in a generation to keep from rest (randomized)
+        makeChildFrac -- fraction of new models to spawn in a generation
+        mutateFrac -- fraction of models to mutate in a generation
+        keepGraveyard -- whether to keep a list of all trained models over generations
+        randomState -- seed for random initializations
+        
+    public methods
+        evolve -- evolve a population of models using genetic algorithm techniques
+        
+    public attributes
+        self.population -- final population of models
+        self.bestModel -- best model after all iterations
+        self.totalGensEvolved -- total number of generations evolved
+        self.graveYard -- discarded models from previous generations (if kept)
+    '''
     def __init__(
-        self, pop_size, top_frac, btm_frac, child_frac, mutate_frac, keep_graveyard, 
-        estimator_type, data_frame, target, num_features, cat_features, 
-        cv_strat, n_splits, eval_criterion, random_state=None
-    ):
-        assert top_frac + btm_frac + child_frac <= 1
+        self, 
+        modelMaker:ModelMaker,
+        modelScorer:ModelScorer,
+        popSize:int,
+        keepTopFrac:float,
+        keepBtmFrac:float,
+        makeChildFrac:float,
+        mutateFrac:float,
+        keepGraveyard:bool=False,
+        randomState:Optional[int]=None
+    ) -> None:
+        assert keepTopFrac + keepBtmFrac + makeChildFrac <= 1        
         
-        self.pop_size = pop_size
-        self.top_n    = int(np.floor(top_frac*self.pop_size))
-        self.btm_n    = int(np.floor(btm_frac*self.pop_size))
-        self.child_n  = int(np.floor(child_frac*self.pop_size))
-        self.mutate_n = int(np.floor(mutate_frac*self.child_n))
+        self.modelMaker = modelMaker
+        self.modelScorer = modelScorer
         
-        self.keep_graveyard = keep_graveyard        
-        if self.keep_graveyard:
+        self.popSize = popSize
+        self.keepTopFrac = keepTopFrac
+        self.keepBtmFrac = keepBtmFrac
+        self.makeChildFrac = makeChildFrac
+        self.mutateFrac = mutateFrac
+        self.keepGraveyard = keepGraveyard
+        self.randomState = randomState
+        
+        self.keepTopN = int(np.floor(self.keepTopFrac * self.popSize))
+        self.keepBtmN = int(np.floor(self.keepBtmFrac * self.popSize))
+        self.makeChildN = int(np.floor(self.makeChildFrac * self.popSize))
+        self.mutateN = int(np.floor(self.mutateFrac * self.popSize))
+        
+        if self.keepGraveyard:
             self.graveyard = []
             
-        self.estimator_type = estimator_type
-        self.data_frame = data_frame
-        self.target = target
-        self.num_features = num_features
-        self.cat_features = cat_features
-        self.cv_strat = cv_strat
-        self.n_splits = n_splits
-        self.eval_criterion = eval_criterion
-        self.random_state = random_state
+        self.population = []
+        self.bestModel = None  
+        self.totalGensEvolved = 0
         
-        self.indivMaker = IndivMaker(
-            estimator_type=self.estimator_type, data_frame=self.data_frame, target=self.target,
-            num_features=self.num_features, cat_features=self.cat_features, cv_strat=self.cv_strat, 
-            eval_criterion=self.eval_criterion, n_splits=self.n_splits, random_state=self.random_state
+        if self.randomState is not None:
+            np.random.seed(self.randomState)
+            
+    def evolve(
+        self, 
+        maxIters:Optional[int]=10, 
+        maxItersNoImprov:Optional[int]=None, 
+        logCurrentBest:bool=False
+    ) -> None:
+        '''
+        Evolve the population until a stopping condition is met
+        -----
+        params
+            maxIters -- maximum number of generations to evolve
+            maxItersNoImprov -- maximum number of consecutive 
+                generations to evolve without improvement
+            printCurrentBest -- log best loss after each evolution round
+            
+        void
+        '''
+        assert maxIters is not None or maxItersNoImprov is not None 
+        
+        if len(self.population) == 0:
+            self._initializePop()
+            
+        iters = 0
+        itersNoImprov = 0
+        stopEvolving = False
+        
+        while not stopEvolving:
+            self._scoreModelsInPop()
+            bestModelCurGen = self._getBestModelCurGen()
+            
+            if self.bestModel is None or (
+                bestModelCurGen.fitness > self.bestModel.fitness
+            ):
+                self.bestModel = bestModelCurGen
+                itersNoImprov = 0
+            else:
+                itersNoImprov += 1
+            iters += 1
+            self.totalGensEvolved += 1
+            
+            if logCurrentBest:
+                logging.info(f'Current best fitness: {self.bestModel.fitness}')
+                
+            self._killUnfit()
+            self._makeChildren()
+            self._makeRemainingRandomModels()
+            
+            stopEvolving = self._checkIfStopCondMet(
+                iters, itersNoImprov, maxIters, maxItersNoImprov
+            )
+            
+        logging.info(
+            f'Evolved {iters} generations ({itersNoImprov} generations '
+            + 'without improvement)'
+        )
+    
+    def _initializePop(self) -> None:
+        assert len(self.population) == 0, 'Models already in population'
+        self.population = [
+            self.modelMaker.makeRandomModel() for m in range(self.popSize)
+        ]
+        
+    def _scoreModelsInPop(self) -> None:
+        for m in range(len(self.population)):
+            if self.population[m].fitness is None:
+                self.population[m].fitness = (
+                    self.modelScorer.scoreModel(self.population[m])
+                )
+    
+    def _getBestModelCurGen(self) -> Pipeline:
+        self._sortPopByFitness()
+        bestModelCurGen = self.population[:1].copy()[0]
+        return bestModelCurGen
+        
+    def _killUnfit(self) -> None:
+        self._sortPopByFitness()
+
+        topKeepInds = range(self.keepTopN)
+        topKeepMods = [self.population[i] for i in topKeepInds]
+        
+        remainingInds = [i for i in range(len(self.population)) if i not in topKeepInds]
+        btmKeepInds = np.random.choice(
+            remainingInds, size=self.keepBtmN, replace=False
+        )
+        btmKeepMods = [self.population[i] for i in btmKeepInds]
+
+        assert len(set(topKeepInds).intersection(set(btmKeepInds))) == 0, (
+            'Cannot have overlap in top kept models and bottom kept models'
         )
         
-        self.population = [
-            self.indivMaker.make_random_indiv()
-            for i in range(self.pop_size)
-        ]        
-        self.best_indiv = None
-        self.n_iters_total = 0
+        keepInds = [*topKeepInds, *btmKeepInds]
+        keepMods = [self.population[i] for i in keepInds]
+        
+        if self.keepGraveyard:
+            buryMods = [
+                self.population[i] for i in range(len(self.population)) 
+                if i not in keepInds
+            ]
+            self.graveyard += buryMods
+            
+        self.population = keepMods
+        
+    def _sortPopByFitness(self) -> None:
+        self.population.sort(key=lambda m: m.fitness, reverse=True)
     
-    def _assess_population_fitness(self):
-        for indiv in range(len(self.population)):
-            if 'fitness' not in self.population[indiv].keys():
-                self.indivMaker.assess_indiv_fitness(self.population[indiv])
-        return None
-
-    def _kill_unfit(self):        
-        pop_indexes = list(range(self.pop_size))
-        top_n_indexes = pop_indexes[:self.top_n]
-        remaining_indexes = [index for index in pop_indexes if index not in top_n_indexes]
-        btm_n_indexes = np.random.choice(remaining_indexes, size=self.btm_n)
-        kill_indexes = [index for index in remaining_indexes if index not in btm_n_indexes]
-        keep_indexes = [*top_n_indexes, *btm_n_indexes]
-        
-        if self.keep_graveyard:
-            for index in kill_indexes:
-                self.graveyard += [self.population[index]]
-                
-        population = [self.population[index] for index in keep_indexes]
-        self.population = population
-        return None
-                
-    def _replenish_population(self):
-        assert len(self.population) >= 2
-        
+    def _makeChildren(self) -> None:
         children = []
-        for i in range(self.child_n):
-            mother = np.random.choice(self.population)
-            father = np.random.choice(self.population)
-            while father == mother:
-                father = np.random.choice(self.population)
-            child_indiv = self.indivMaker.make_child_indiv(mother, father)
-            children += [child_indiv]
-            
-        for i in range(self.mutate_n):
-            indiv_to_mutate = np.random.choice(children)
-            self.indivMaker.mutate_indiv(indiv_to_mutate)
-            
+        for i in range(self.makeChildN):
+            mother, father = np.random.choice(self.population, size=2, replace=False)
+            child = self.modelMaker.makeChildModel(mother, father)
+            children.append(child)
+        
+        childrenToMutate = np.random.choice(children, size=self.mutateN, replace=False)
+        for child in childrenToMutate:
+            self.modelMaker.mutateModel(child)
+        
         self.population += children
-        
-        while len(self.population) < self.pop_size:
-            self.population += [self.indivMaker.make_random_indiv()]
     
-        return None
+    def _makeRemainingRandomModels(self) -> None:
+        while len(self.population) < self.popSize:
+            self.population.append(self.modelMaker.makeRandomModel())
     
-    def evolve(self, n_iters_max=10, n_iters_no_improv_max=None, print_current_best=False):
-        
-        assert n_iters_max or n_iters_no_improv_max
-        
-        n_iters = 0
-        n_iters_no_improv = 0
-        
-        while True:
-            self._assess_population_fitness()
-            self.population.sort(key=lambda indiv: indiv['fitness'], reverse=True)
-            best_indiv_current_gen = self.population[0]
-            
-            n_iters += 1
-            self.n_iters_total += 1
-            
-            if self.best_indiv is None or (
-                best_indiv_current_gen['fitness'] > self.best_indiv['fitness']
-            ):
-                self.best_indiv = best_indiv_current_gen
-                n_iters_no_improv = 0
-            else:
-                n_iters_no_improv += 1  
-                
-            if print_current_best:
-                print('Current best fitness: {}'.format(self.best_indiv['fitness']))
-            
-            if (n_iters_max and n_iters >= n_iters_max) or (
-                n_iters_no_improv_max and n_iters_no_improv >= n_iters_no_improv_max
-            ):
-                print(
-                    f'Finished evolving {n_iters} generations '
-                    + f'({n_iters_no_improv} consecutive generations without improvement)'
-                )
-                break
-                
-            self._kill_unfit()
-            self._replenish_population()           
-        
-        return None
-
+    @staticmethod
+    def _checkIfStopCondMet(
+        iters:int, 
+        itersNoImprov:int,
+        maxIters:Optional[int], 
+        maxItersNoImprov:Optional[int]
+    ) -> bool:    
+        if maxIters is not None and itersNoImprov is not None:
+            stopEvolving = iters == maxIters or itersNoImprov == maxItersNoImprov             
+        elif maxIters is not None:
+            stopEvolving = iters == maxIters
+        elif itersNoImprov is not None:
+            stopEvolving = itersNoImprov == maxItersNoImprov
+        else:
+            raise Exception(f'Invalid stopEvolving value: {stopEvolving}')
+        return stopEvolving
