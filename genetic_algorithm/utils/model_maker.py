@@ -31,7 +31,7 @@ class ModelMaker:
         mutateModel -- Mutate a model by randomly changing one of its hyperparameters
         
     public attributes
-        None
+        none
     '''
     
     preprocessorChoiceGrid = {
@@ -126,6 +126,17 @@ class ModelMaker:
             }
     
     def makeRandomModel(self) -> Pipeline:
+        '''
+        Generate a model by randomly selecting hyperparameters
+        from the full grid of preprocessor choices and estimator choices
+        -----
+        
+        params
+            none
+            
+        returns
+            randomModel -- enhanced scikit-learn pipeline
+        '''
         preprocessorChoices = {
             param: np.random.choice(self.preprocessorChoiceGrid[param])
             for param in self.preprocessorChoiceGrid.keys()
@@ -140,6 +151,18 @@ class ModelMaker:
         return randomModel
     
     def makeChildModel(self, mother:Pipeline, father:Pipeline) -> Pipeline:
+        '''
+        Generate a model by randomly selecting hyperparameters
+        from two existing models' hyperparameters
+        -----
+        
+        params
+            mother -- first parent pipeline
+            father -- second parent pipeline
+            
+        returns
+            childModel -- enhanced scikit-learn pipeline            
+        '''
         preprocessorChoices = {
             param: np.random.choice([
                 mother.preprocessorChoices[param],
@@ -158,6 +181,18 @@ class ModelMaker:
         return childModel
     
     def mutateModel(self, childModel:Pipeline) -> None:
+        '''
+        Mutate a model by randomly modifying one of the models'
+        hyperparameters (possible it could change it to what it 
+        already was).
+        -----
+        
+        params
+            childModel -- pipeline to mutate
+            
+        returns
+            none
+        '''
         
         paramType = np.random.choice(['preprocessor', 'estimator'])
         

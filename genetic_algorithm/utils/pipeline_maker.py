@@ -27,6 +27,12 @@ class PipelineMaker:
         
     public methods
         makePipeline -- make scikit-learn pipeline, with some extra attributes
+        
+    public attributes
+        estimatorClass -- type of scikit-learn estimator
+        numFeatures -- numeric features
+        catFeatures -- categorical features
+        randomState -- seed for initializing estimator
     '''
     def __init__(
         self,
@@ -112,7 +118,7 @@ class PipelineMaker:
     def _makeEstimator(
         self, 
         estimatorChoices:dict,
-    ): # make conditional based on estimator class
+    ) -> Any: 
         estimator = self.estimatorClass(
             **estimatorChoices, random_state=self.randomState
         )

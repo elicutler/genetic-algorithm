@@ -7,11 +7,24 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 class TargetMeanEncoder(BaseEstimator, TransformerMixin):
     '''
-    Target mean encoding data preprocessor compatible with scikit-learn pipelines
+    Target mean encoding data preprocessor compatible with scikit-learn pipelines.
+    Supports continuous outcomes (including binary outcomes converted to 0/1). 
+    Does not support multi-class outcomes.
     -----
     
     params
-        :priorSize: 
+        priorSize -- regularize level-specific outcome means against grand mean
+            by supplying a fixed number of observations for the grand mean weight
+        priorFrac -- regularize level-specific outcome means against grand mean
+            by supplying a fraction of observations that gets converted to a 
+            fixed number of observations for the grand mean weight
+    
+    public methods
+        fit -- for scikit-learn processing
+        transform -- for scikit-learn processing
+        
+    public attributes
+        none
     '''
     
     def __init__(
@@ -29,6 +42,18 @@ class TargetMeanEncoder(BaseEstimator, TransformerMixin):
         X:Union[pd.DataFrame, np.array], 
         y:Union[pd.Series, np.array]
     ) -> 'TargetMeanEncoder':
+        '''
+        Estimate target means for each level of each categorical
+        feature (optionally regularized)
+        -----
+        
+        params
+            X -- feature array for estimating target means by feature level
+            y -- target array for estimating target means by feature level
+            
+        returns
+            self
+        '''
         
         X = X.values if isinstance(X, pd.DataFrame) else X  
 
@@ -86,6 +111,17 @@ class TargetMeanEncoder(BaseEstimator, TransformerMixin):
         return self
         
     def transform(self, X:np.array) -> np.array:
+        '''
+        Get target means for each level of each categorical feature
+        (optionally regularized)
+        -----
+        
+        params:
+            X -- feature array for which to apply target means
+            
+        returns
+            XTransformed -- array of target means
+        '''
         
         X = X.values if isinstance(X, pd.DataFrame) else X
         XTransformed = np.empty_like(X).astype(float)
