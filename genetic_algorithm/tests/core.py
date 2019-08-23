@@ -14,7 +14,7 @@ import pandas as pd
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.model_selection import KFold
 
-defaultLogger = DefaultLogger(__name__)
+defaultLogger = DefaultLogger(logFileName=__name__)
 
 n = 100
 X = pd.DataFrame({
