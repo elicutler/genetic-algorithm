@@ -1,6 +1,7 @@
+from typing import Union
 import logging
 
-class DefaultLogger:
+class DefaultLogger(logging.RootLogger):
     '''
     Set up root logger with customizable default stream and file handlers
     -----
@@ -25,33 +26,29 @@ class DefaultLogger:
     )
     
     def __init__(
-        self, 
-        logFileName:str, 
-        level:int=logging.INFO, 
+        self, level:int=logging.INFO, 
         defaultFormatterOverride:logging.Formatter=None,
-        setDefaultStreamHandler:bool=True, 
-        setDefaultFileHandler:bool=True,
-        defaultFileHandlerMode:str='w'
+        useDefaultStreamHandler:bool=True, 
+        logFileName:Union[str, None]=None, defaultFileHandlerMode:str='w'
     ) -> None:
-        self.logFileName = logFileName
-        self.level = level
+        super().__init__(level)
+        
         self.defaultFormatterOverride = defaultFormatterOverride
-        self.setDefaultStreamHandler = setDefaultStreamHandler
-        self.setDefaultFileHandler = setDefaultFileHandler
+        self.useDefaultStreamHandler = useDefaultStreamHandler
+        self.logFileName = logFileName
         self.defaultFileHandlerMode = defaultFileHandlerMode
         
-        self.logger = logging.getLogger()
-        self.logger.setLevel(self.level)
-        
         self.formatter = self._setFormatter()
+        
+        logging.handlers = []
             
-        if self.setDefaultStreamHandler:
+        if self.useDefaultStreamHandler:
             streamHandler = self._setDefaultHandler(type_='stream')
-            self.logger.addHandler(streamHandler)
+            self.addHandler(streamHandler)
             
-        if self.setDefaultFileHandler:
+        if self.logFileName is not None:
             fileHandler = self._setDefaultHandler(type_='file')
-            self.logger.addHandler(fileHandler)
+            self.addHandler(fileHandler)
             
     def _setFormatter(self) -> logging.Formatter:
         if self.defaultFormatterOverride is None:
@@ -67,18 +64,18 @@ class DefaultLogger:
             handler = self._setDefaultFileHandler()
         self._setHandlerDefaults(handler)
         return handler
-    
-    @staticmethod
-    def _setDefaultStreamHandler() -> logging.StreamHandler:
-        streamHandler = logging.StreamHandler()
-        return streamHandler
-    
+
     def _setDefaultFileHandler(self) -> logging.FileHandler:
         fileHandler = logging.FileHandler(
             self.logFileName.strip('.py') + '.log', 
             self.defaultFileHandlerMode
         )
         return fileHandler
+    
+    @staticmethod
+    def _setDefaultStreamHandler() -> logging.StreamHandler:
+        streamHandler = logging.StreamHandler()
+        return streamHandler
     
     def _setHandlerDefaults(self, handler:logging.Handler) -> None:
         handler.setLevel(self.level)
