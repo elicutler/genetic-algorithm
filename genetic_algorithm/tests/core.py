@@ -2,7 +2,6 @@ from genetic_algorithm.core import GeneticAlgorithm
 from genetic_algorithm.utils.model_maker import ModelMaker
 from genetic_algorithm.utils.model_scorer import ModelScorer
 from genetic_algorithm.utils.pipeline_maker import PipelineMaker
-from genetic_algorithm.utils.default_logger import DefaultLogger
 
 import logging
 
@@ -13,8 +12,6 @@ import pandas as pd
 
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.model_selection import KFold
-
-defaultLogger = DefaultLogger(logFileName=__name__)
 
 n = 100
 X = pd.DataFrame({
