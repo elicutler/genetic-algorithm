@@ -1,10 +1,10 @@
 from typing import Union, Any
 
 import numpy as np
+import pandas as pd
 
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score
-
 from genetic_algorithm.utils.pipeline_maker import PipelineMaker
 
 class ModelScorer:
@@ -14,8 +14,8 @@ class ModelScorer:
     
     params
         estimator -- scikit-learn estimator or pipeline
-        X -- input data array
-        y -- target data array
+        X -- input data
+        y -- target data
         scoring -- metric to evaluate model accuracy
         crossValidator -- scikit-learn cross validation scheme
         errorScore -- how to score CV folds that encounter errors
@@ -32,8 +32,8 @@ class ModelScorer:
     
     def __init__(
         self,
-        X:np.array,
-        y:np.array,
+        X:Union[pd.DataFrame, np.array],
+        y:[pd.Series, np.array],
         evalMetric:str,
         crossValidator:Any, # could be any number of classes from sklearn.model_selection
         errorScore:Union[float, int, str]=np.nan
@@ -45,9 +45,7 @@ class ModelScorer:
         self.errorScore = errorScore
     
     def scoreModel(
-        self, 
-        pipeline:Pipeline,
-        aggregator:str='mean'
+        self, pipeline:Pipeline, aggregator:str='mean'
     ) -> float:
         '''
         score model using scikit-learn's cross_val_score
