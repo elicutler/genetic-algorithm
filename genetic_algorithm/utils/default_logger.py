@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 import logging
 
 class DefaultLogger(logging.RootLogger):
@@ -29,7 +29,7 @@ class DefaultLogger(logging.RootLogger):
         self, level:int=logging.INFO, 
         defaultFormatterOverride:logging.Formatter=None,
         useDefaultStreamHandler:bool=True, 
-        logFileName:Union[str, None]=None, defaultFileHandlerMode:str='w'
+        logFileName:Optional[str]=None, defaultFileHandlerMode:str='w'
     ) -> None:
         super().__init__(level)
         
