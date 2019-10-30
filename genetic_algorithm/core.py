@@ -7,7 +7,7 @@ from sklearn.pipeline import Pipeline
 from genetic_algorithm.utils.model_maker import ModelMaker
 from genetic_algorithm.utils.model_scorer import ModelScorer
 
-class GeneticAlgorithm:
+class Population:
     '''
     Genetic algorithm for scikit-learn model hyperparameter tuning 
     -----
