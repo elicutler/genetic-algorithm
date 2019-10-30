@@ -4,8 +4,12 @@ import logging
 import numpy as np
 from sklearn.pipeline import Pipeline
 
+from genetic_algorithm.utils.gen_utils import setLoggerDefaults
 from genetic_algorithm.utils.model_maker import ModelMaker
 from genetic_algorithm.utils.model_scorer import ModelScorer
+
+logger = logging.getLogger(__name__)
+setLoggerDefaults(logger)
 
 class Population:
     '''
@@ -113,7 +117,7 @@ class Population:
             self.totalGensEvolved += 1
             
             if logCurrentBest:
-                logging.info(f'Current best fitness: {self.bestModel.fitness}')
+                logger.info(f'Current best fitness: {self.bestModel.fitness}')
                 
             self._killUnfit()
             self._makeChildren()
@@ -123,7 +127,7 @@ class Population:
                 iters, itersNoImprov, maxIters, maxItersNoImprov
             )
             
-        logging.info(
+        logger.info(
             f'Evolved {iters} generations ({itersNoImprov} generations '
             + 'without improvement)'
         )
