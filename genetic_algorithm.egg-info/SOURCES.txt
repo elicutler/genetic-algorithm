@@ -9,6 +9,7 @@ genetic_algorithm.egg-info/not-zip-safe
 genetic_algorithm.egg-info/requires.txt
 genetic_algorithm.egg-info/top_level.txt
 genetic_algorithm/utils/__init__.py
+genetic_algorithm/utils/gen_utils.py
 genetic_algorithm/utils/model_maker.py
 genetic_algorithm/utils/model_scorer.py
 genetic_algorithm/utils/pipeline_maker.py

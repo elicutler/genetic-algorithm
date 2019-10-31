@@ -1,6 +1,6 @@
 from typing import Optional
-import logging
 
+import logging
 import numpy as np
 from sklearn.pipeline import Pipeline
 

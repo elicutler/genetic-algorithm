@@ -25,5 +25,5 @@ def setLoggerDefaults(
     setHandlerDefaults(streamHandler)
     
     if logFileName is not None:
-        fileHandler = logging.FileHandler(f'{logger.name}.log', 'w')
+        fileHandler = logging.FileHandler(logFileName, 'w')
         setHandlerDefaults(fileHandler)
